@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Coins, Gem, RefreshCcw, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
+import { Coins, Gem, RefreshCcw, TrendingUp, Clock, AlertTriangle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/rates';
@@ -10,21 +10,45 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
 
-  const fetchRates = async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
+  const fetchRates = async (isManualRefresh = false) => {
+    if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
     
     setError(null);
     try {
       const response = await axios.get(API_URL);
-      setData(response.data);
+      const rates = response.data;
+      
+      setData(rates);
+
+      // If we got cached data during a manual refresh, we poll for the new data
+      if (isManualRefresh && rates.source === 'cache') {
+        setStatusMsg('Live update in progress...');
+        
+        // Wait 18 seconds (Groww usually takes 15s) and fetch again
+        setTimeout(async () => {
+          try {
+            const retryResponse = await axios.get(API_URL);
+            setData(retryResponse.data);
+            setStatusMsg('Rates updated to latest!');
+            setTimeout(() => setStatusMsg(''), 3000);
+          } catch (e) {
+            console.error('Retry failed', e);
+          } finally {
+            setRefreshing(false);
+          }
+        }, 18000);
+      } else {
+        setRefreshing(false);
+      }
     } catch (err) {
       console.error('Error fetching data:', err);
-      setError('Wait, we are fetching some LIVE rates for you! Please retry in a moment if it shows an error.');
-    } finally {
-      setLoading(false);
+      setError('Connection issue. Please check your internet or try again later.');
       setRefreshing(false);
+    } finally {
+      if (!isManualRefresh) setLoading(false);
     }
   };
 
@@ -51,6 +75,18 @@ function App() {
           Live Precious Metals Rates • Curated from Groww
         </motion.p>
       </header>
+
+      {statusMsg && (
+        <motion.div 
+          className="status-toast"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 20, opacity: 0 }}
+        >
+          {refreshing && <Loader2 size={14} className="animate-spin" style={{ marginRight: '8px' }} />}
+          {statusMsg}
+        </motion.div>
+      )}
 
       {error && (
         <motion.div 
@@ -99,7 +135,7 @@ function App() {
                   <div className="value gold-text" style={{ opacity: 0.8 }}>{data?.gold?.gold22K || '₹ --'}</div>
                 </div>
               </div>
-              <div style={{ padding: '0.8rem 1rem', background: 'rgba(255, 215, 0, 0.05)', borderRadius: '12px', marginTop: '1rem', fontSize: '0.9rem' }}>
+              <div className="card-footer" style={{ background: 'rgba(255, 215, 0, 0.05)' }}>
                 Refinery Quality Assured
               </div>
             </motion.div>
@@ -127,7 +163,7 @@ function App() {
                   <div className="value silver-text" style={{ opacity: 0.8 }}>{data?.silver?.silverPerKg || '₹ --'}</div>
                 </div>
               </div>
-              <div style={{ padding: '0.8rem 1rem', background: 'rgba(229, 228, 226, 0.1)', borderRadius: '12px', marginTop: '1rem', fontSize: '0.9rem' }}>
+              <div className="card-footer" style={{ background: 'rgba(229, 228, 226, 0.1)' }}>
                 Premium Industrial Grade
               </div>
             </motion.div>
@@ -135,19 +171,24 @@ function App() {
         )}
       </AnimatePresence>
 
-      <button 
-        className="refresh-btn" 
-        onClick={() => fetchRates(true)} 
-        disabled={loading || refreshing}
-      >
-        <RefreshCcw size={18} className={refreshing ? 'animate-spin' : ''} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-        {refreshing ? 'Fetching...' : 'Refresh Rates'}
-      </button>
+      <div className="controls">
+        <button 
+          className="refresh-btn" 
+          onClick={() => fetchRates(true)} 
+          disabled={loading || refreshing}
+        >
+          <RefreshCcw size={18} className={refreshing ? 'animate-spin' : ''} />
+          {refreshing ? 'Live Updating...' : 'Refresh Rates'}
+        </button>
+      </div>
 
       {data && (
         <div className="updated-time">
           <Clock size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Last updated: {new Date(data.timestamp).toLocaleString()}
+          {data.source === 'cache' && refreshing && (
+            <span style={{ marginLeft: '10px', color: '#63b3ed', fontSize: '0.8rem' }}>(Background Syncing...)</span>
+          )}
         </div>
       )}
 
@@ -157,6 +198,35 @@ function App() {
           to { transform: rotate(360deg); }
         }
         .animate-spin { animation: spin 1s linear infinite; }
+        
+        .status-toast {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(49, 130, 206, 0.2);
+          color: #63b3ed;
+          padding: 8px 16px;
+          border-radius: 20px;
+          margin: 10px auto;
+          width: fit-content;
+          font-size: 0.85rem;
+          border: 1px solid rgba(99, 179, 237, 0.3);
+          backdrop-filter: blur(4px);
+        }
+
+        .controls {
+          display: flex;
+          justify-content: center;
+          margin-top: 2rem;
+        }
+
+        .card-footer {
+          padding: 0.6rem 1rem;
+          border-radius: 12px;
+          margin-top: 1rem;
+          font-size: 0.85rem;
+          text-align: center;
+        }
       `}</style>
     </div>
   );
