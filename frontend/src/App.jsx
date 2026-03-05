@@ -3,7 +3,7 @@ import axios from 'axios';
 import { 
   Coins, Gem, RefreshCcw, TrendingUp, Clock, 
   AlertTriangle, Loader2, Sparkles, ShieldCheck,
-  Trophy, Users, Activity
+  Trophy, Users, Activity, Zap, ZapOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -13,6 +13,7 @@ function App() {
   const [data, setData] = useState(null);
   const [cricketData, setCricketData] = useState(null);
   const [activeTab, setActiveTab] = useState('metals');
+  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -66,13 +67,16 @@ function App() {
     fetchRates();
     fetchCricket();
     
-    // Auto refresh cricket scores every 60 seconds
-    const interval = setInterval(() => {
-      fetchCricket();
-    }, 60000);
+    let interval;
+    if (isAutoRefresh) {
+      interval = setInterval(() => {
+        if (activeTab === 'cricket') fetchCricket();
+        else fetchRates();
+      }, 60000);
+    }
     
     return () => clearInterval(interval);
-  }, []);
+  }, [isAutoRefresh, activeTab]);
 
   return (
     <div className="container">
@@ -130,6 +134,20 @@ function App() {
             onClick={() => setActiveTab('cricket')}
           >
             <Trophy size={18} /> Cricket
+          </button>
+        </div>
+
+        {/* Auto Refresh Toggle */}
+        <div className="auto-refresh-toggle">
+          <div className="toggle-label">
+            {isAutoRefresh ? <Zap size={14} className="zap-icon" /> : <ZapOff size={14} />}
+            Auto Sync {isAutoRefresh ? 'ON' : 'OFF'}
+          </div>
+          <button 
+            className={`toggle-switch ${isAutoRefresh ? 'on' : ''}`}
+            onClick={() => setIsAutoRefresh(!isAutoRefresh)}
+          >
+            <div className="switch-handle" />
           </button>
         </div>
       </header>

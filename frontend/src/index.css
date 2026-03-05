@@ -477,6 +477,73 @@ h1 {
   border-radius: 8px;
 }
 
+/* Auto Sync Toggle */
+.auto-refresh-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 1.5rem;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.zap-icon {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.4));
+}
+
+.toggle-switch {
+  width: 44px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--card-border);
+  border-radius: 99px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-switch.on {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: var(--accent);
+}
+
+.switch-handle {
+  width: 14px;
+  height: 14px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  position: absolute;
+  left: 3px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toggle-switch.on .switch-handle {
+  left: 25px;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+@media (max-width: 480px) {
+  .auto-refresh-toggle {
+    margin-top: 1rem;
+  }
+}
+
 @keyframes shimmer-anim {
   0% {
     background-position: 200% 0;
