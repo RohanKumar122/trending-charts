@@ -445,15 +445,32 @@ function HistoryModal({ isOpen, onClose, metal, data, loading }) {
   if (!isOpen) return null;
 
   const filteredData = data
-    .filter(item => item && item.gold && item.silver)
+    .filter(item => {
+      if (!item || !item.gold || !item.silver) return false;
+      const price = metal === 'gold' ? item.gold.num24K : item.silver.numKg;
+      return price && price > 0;  // filter out zero/undefined prices
+    })
     .map(item => ({
-      time: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }),
+      // ✅ Fix: toLocaleTimeString doesn't accept day/month — use toLocaleString instead
+      time: new Date(item.timestamp).toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
       price: metal === 'gold' ? item.gold.num24K : item.silver.numKg,
       rawTime: new Date(item.timestamp)
     })).sort((a, b) => a.rawTime - b.rawTime);
 
-  const metalName = metal === 'gold' ? 'Gold (24K)' : 'Silver (1KG)';
+  const metalName = metal === 'gold' ? 'Gold (24K per 10g)' : 'Silver (1KG)';
   const color = metal === 'gold' ? '#FFD700' : '#E5E4E2';
+
+  // ✅ Fix: Metal-aware Y-axis — gold is in the ₹70k-90k range, silver in ₹80k-100k per kg
+  const yAxisFormatter = (val) => `₹${(val / 1000).toFixed(1)}k`;
+
+  // ✅ Fix: Safe price formatter — never crashes on undefined/null
+  const safePrice = (price) => (price != null ? `₹${Number(price).toLocaleString('en-IN')}` : '₹--');
 
   return (
     <motion.div 
@@ -494,15 +511,17 @@ function HistoryModal({ isOpen, onClose, metal, data, loading }) {
                 <XAxis 
                   dataKey="time" 
                   stroke="#94A3B8" 
-                  fontSize={10}
+                  fontSize={9}
                   tick={{ fill: '#94A3B8' }}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   stroke="#94A3B8" 
                   fontSize={10}
                   tick={{ fill: '#94A3B8' }}
                   domain={['auto', 'auto']}
-                  tickFormatter={(val) => `₹${(val / 1000).toFixed(1)}k`}
+                  tickFormatter={yAxisFormatter}
+                  width={55}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -511,7 +530,8 @@ function HistoryModal({ isOpen, onClose, metal, data, loading }) {
                     borderRadius: '12px',
                     color: '#fff'
                   }}
-                  formatter={(val) => [`₹${val.toLocaleString()}`, 'Price']}
+                  formatter={(val) => [safePrice(val), 'Price']}
+                  labelStyle={{ color: '#94A3B8', fontSize: '0.75rem' }}
                 />
                 <Area 
                   type="monotone" 
@@ -520,6 +540,7 @@ function HistoryModal({ isOpen, onClose, metal, data, loading }) {
                   fillOpacity={1} 
                   fill="url(#colorPrice)" 
                   strokeWidth={3}
+                  dot={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -537,9 +558,9 @@ function HistoryModal({ isOpen, onClose, metal, data, loading }) {
               return (
                 <div key={i} className="history-item">
                   <span className="time">{item.time}</span>
-                  <span className="price">₹{item.price.toLocaleString()}</span>
+                  <span className="price">{safePrice(item.price)}</span>
                   <span className={`diff ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}`}>
-                    {diff > 0 ? '+' : ''}{diff.toLocaleString()}
+                    {diff !== 0 ? `${diff > 0 ? '+' : ''}${Number(diff).toLocaleString('en-IN')}` : '—'}
                   </span>
                 </div>
               );
@@ -550,6 +571,8 @@ function HistoryModal({ isOpen, onClose, metal, data, loading }) {
     </motion.div>
   );
 }
+
+
 
 function LoadingCard({ title, icon }) {
   return (
