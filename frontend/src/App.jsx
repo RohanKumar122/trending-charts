@@ -584,9 +584,9 @@ function HistoryModal({ isOpen, onClose, metal, data, loading }) {
                 <div key={i} className="history-item">
                   <span className="time">{item.time}</span>
                   <span className="price">{safePrice(item.price)}</span>
-                  <span className={`diff ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}`}>
+                  {/* <span className={`diff ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}`}>
                     {diff !== 0 ? `${diff > 0 ? '+' : ''}${Number(diff).toLocaleString('en-IN')}` : '—'}
-                  </span>
+                  </span> */}
                 </div>
               );
             })}

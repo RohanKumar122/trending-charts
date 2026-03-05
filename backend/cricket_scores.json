@@ -4,14 +4,14 @@
       "matchId": "139478",
       "seriesName": "ICC Men's T20 World Cup 2026",
       "matchDesc": "2nd Semi-Final",
-      "status": "England need 190 runs in 85 balls",
+      "status": "England need 183 runs in 81 balls",
       "team1": {
         "name": "India",
         "score": "253/7"
       },
       "team2": {
         "name": "England",
-        "score": "64/3"
+        "score": "71/3"
       },
       "state": "Live"
     },
@@ -151,66 +151,6 @@
       "state": "Preview"
     },
     {
-      "matchId": "133407",
-      "seriesName": "Sheffield Shield 2025-26",
-      "matchDesc": "27th Match",
-      "status": "Day 1: Stumps - South Australia trail by 249 runs",
-      "team1": {
-        "name": "New South Wales",
-        "score": "269/10"
-      },
-      "team2": {
-        "name": "South Australia",
-        "score": "20/1"
-      },
-      "state": "Live"
-    },
-    {
-      "matchId": "147310",
-      "seriesName": "CSA Provincial One-Day Challenge Division One",
-      "matchDesc": "13th Match",
-      "status": "Border won by 59 runs",
-      "team1": {
-        "name": "Border",
-        "score": "306/5"
-      },
-      "team2": {
-        "name": "Eastern Storm",
-        "score": "247/10"
-      },
-      "state": "Live"
-    },
-    {
-      "matchId": "147359",
-      "seriesName": "CSA Provincial One-Day Challenge Division One",
-      "matchDesc": "14th Match",
-      "status": "Limpopo won by 9 wkts (DLS method) ",
-      "team1": {
-        "name": "Mpumalanga Rhinos",
-        "score": "229/7"
-      },
-      "team2": {
-        "name": "Limpopo",
-        "score": "237/1"
-      },
-      "state": "Live"
-    },
-    {
-      "matchId": "147378",
-      "seriesName": "CSA Provincial One-Day Challenge Division One",
-      "matchDesc": "15th Match",
-      "status": "Match abandoned without a ball bowled",
-      "team1": {
-        "name": "South Africa Emerging Players",
-        "score": ""
-      },
-      "team2": {
-        "name": "Northern Cape",
-        "score": ""
-      },
-      "state": "Preview"
-    },
-    {
       "matchId": "147491",
       "seriesName": "CSA Provincial One-Day Challenge Division One",
       "matchDesc": "16th Match",
@@ -222,6 +162,21 @@
       "team2": {
         "name": "South Western Districts",
         "score": "251/3"
+      },
+      "state": "Live"
+    },
+    {
+      "matchId": "133407",
+      "seriesName": "Sheffield Shield 2025-26",
+      "matchDesc": "27th Match",
+      "status": "Day 1: Stumps - South Australia trail by 249 runs",
+      "team1": {
+        "name": "New South Wales",
+        "score": "269/10"
+      },
+      "team2": {
+        "name": "South Australia",
+        "score": "20/1"
       },
       "state": "Live"
     },
@@ -241,7 +196,7 @@
       "state": "Preview"
     }
   ],
-  "timestamp": "2026-03-05T16:00:55.371Z",
-  "istTimestamp": "3/5/2026, 9:30:55 PM",
-  "count": 16
+  "timestamp": "2026-03-05T16:05:55.387Z",
+  "istTimestamp": "3/5/2026, 9:35:55 PM",
+  "count": 13
 }
