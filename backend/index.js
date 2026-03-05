@@ -29,11 +29,15 @@ mongoose.connect(MONGODB_URI)
 const rateSchema = new mongoose.Schema({
     gold: {
         gold24K: String,
-        gold22K: String
+        gold22K: String,
+        num24K: Number, // Storing raw numbers for charts
+        num22K: Number
     },
     silver: {
         silverPerGram: String,
-        silverPerKg: String
+        silverPerKg: String,
+        numGram: Number, // Storing raw numbers for charts
+        numKg: Number
     },
     timestamp: { type: Date, default: Date.now }
 });
@@ -86,15 +90,19 @@ async function scrapeRates() {
                 }
             } catch (e) { }
 
-            const format = (num) => {
-                if (!num) return null;
-                const rounded = Math.round(parseFloat(num.toString().replace(/[^\d.]/g, '')));
-                return `₹${rounded.toLocaleString('en-IN')}`;
+            const parseNum = (val) => {
+                if (!val) return 0;
+                return Math.round(parseFloat(val.toString().replace(/[^\d.]/g, '')));
             };
 
+            const num24 = parseNum(g24);
+            const num22 = parseNum(g22);
+
             return {
-                gold24K: format(g24),
-                gold22K: format(g22)
+                gold24K: `₹${num24.toLocaleString('en-IN')}`,
+                gold22K: `₹${num22.toLocaleString('en-IN')}`,
+                num24K: num24,
+                num22K: num22
             };
         });
 
@@ -118,26 +126,46 @@ async function scrapeRates() {
                 }
             } catch (e) { }
 
-            const format = (num) => {
-                if (!num) return null;
-                const rounded = Math.round(parseFloat(num.toString().replace(/[^\d.]/g, '')));
-                return `₹${rounded.toLocaleString('en-IN')}`;
+            const parseNum = (val) => {
+                if (!val) return 0;
+                return Math.round(parseFloat(val.toString().replace(/[^\d.]/g, '')));
             };
 
-            const numKg = kg ? parseFloat(kg.toString().replace(/[^\d.]/g, '')) : 0;
+            const numKg = parseNum(kg);
+            const numGram = parseFloat((numKg / 1000).toFixed(2));
+
             return {
-                silverPerGram: numKg ? `₹${(numKg / 1000).toFixed(2)}` : null,
-                silverPerKg: format(kg)
+                silverPerGram: numGram ? `₹${numGram}` : null,
+                silverPerKg: `₹${numKg.toLocaleString('en-IN')}`,
+                numGram: numGram,
+                numKg: numKg
             };
         });
 
-        const finalData = { gold: goldData, silver: silverData };
+        // --- Analysis Logic: Check if we should insert a new record ---
+        // We only want to "append" if it's a new day or if the price changed significantly.
+        // For a simple chart, appending every time is fine, but to keep it clean:
+        const lastRate = await mongoose.model('Rate').findOne().sort({ timestamp: -1 });
 
-        // Save to MongoDB
-        await Rate.create(finalData);
-        console.log('Successfully scraped and cached new rates');
+        let shouldInsert = true;
+        if (lastRate) {
+            const isSameDay = new Date(lastRate.timestamp).toDateString() === new Date().toDateString();
+            const samePrices = lastRate.gold.num24K === goldData.num24K && lastRate.silver.numKg === silverData.numKg;
 
-        return finalData;
+            // If it's the same day and prices haven't changed, we can skip OR just update the timestamp.
+            // But the user wants to "append", so we insert if it's a new day OR if price changed.
+            if (isSameDay && samePrices) {
+                console.log('Price same as last cache today. Skipping duplicate append.');
+                shouldInsert = false;
+            }
+        }
+
+        if (shouldInsert) {
+            await Rate.create({ gold: goldData, silver: silverData });
+            console.log('Successfully appended new rates to history');
+        }
+
+        return { gold: goldData, silver: silverData };
     } catch (err) {
         console.error('Scraping error:', err);
         throw err;
@@ -148,10 +176,8 @@ async function scrapeRates() {
 
 app.get('/api/rates', async (req, res) => {
     try {
-        // 1. Get the latest cached data from MongoDB
         const cachedData = await Rate.findOne().sort({ timestamp: -1 });
 
-        // 2. Return cached data immediately if exists
         if (cachedData) {
             res.json({
                 gold: cachedData.gold,
@@ -160,17 +186,25 @@ app.get('/api/rates', async (req, res) => {
                 source: 'cache'
             });
 
-            // 3. Trigger background refresh if data is older than 5 minutes
             const ageInMs = new Date() - new Date(cachedData.timestamp);
             if (ageInMs > 5 * 60 * 1000) {
-                console.log('Data is stale, triggering background refresh...');
                 scrapeRates().catch(e => console.error('Background refresh failed:', e));
             }
         } else {
-            // No data at all, must wait for first scrape
             const freshData = await scrapeRates();
             res.json({ ...freshData, source: 'live', timestamp: new Date() });
         }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// New Endpoint for Chart Data
+app.get('/api/history', async (req, res) => {
+    try {
+        // Get last 30 days of data for the chart
+        const history = await Rate.find().sort({ timestamp: 1 }).limit(100);
+        res.json(history);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
