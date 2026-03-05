@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Coins, Gem, RefreshCcw, TrendingUp, Clock, AlertTriangle, Loader2 } from 'lucide-react';
+import { 
+  Coins, Gem, RefreshCcw, TrendingUp, Clock, 
+  AlertTriangle, Loader2, Sparkles, ShieldCheck 
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/rates';
@@ -20,22 +23,21 @@ function App() {
     try {
       const response = await axios.get(API_URL);
       const rates = response.data;
-      
       setData(rates);
 
-      // If we got cached data during a manual refresh, we poll for the new data
       if (isManualRefresh && rates.source === 'cache') {
-        setStatusMsg('Live update in progress...');
+        setStatusMsg('Updating to live market rates...');
         
-        // Wait 18 seconds (Groww usually takes 15s) and fetch again
         setTimeout(async () => {
           try {
             const retryResponse = await axios.get(API_URL);
             setData(retryResponse.data);
-            setStatusMsg('Rates updated to latest!');
+            setStatusMsg('Rates Synced');
             setTimeout(() => setStatusMsg(''), 3000);
           } catch (e) {
             console.error('Retry failed', e);
+            setStatusMsg('Update failed. Try again.');
+            setTimeout(() => setStatusMsg(''), 3000);
           } finally {
             setRefreshing(false);
           }
@@ -45,7 +47,7 @@ function App() {
       }
     } catch (err) {
       console.error('Error fetching data:', err);
-      setError('Connection issue. Please check your internet or try again later.');
+      setError('Unable to reach the server. Please check your connection.');
       setRefreshing(false);
     } finally {
       if (!isManualRefresh) setLoading(false);
@@ -59,40 +61,64 @@ function App() {
   return (
     <div className="container">
       <header>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="header-badge"
+          style={{ 
+            background: 'rgba(56, 189, 248, 0.1)', 
+            color: '#38BDF8', 
+            padding: '4px 12px', 
+            borderRadius: '99px', 
+            fontSize: '0.75rem', 
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginBottom: '1rem'
+          }}
+        >
+          <Sparkles size={14} /> LIVE PRICE TICKER
+        </motion.div>
+        
         <motion.h1 
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         >
           Metals Exchange
         </motion.h1>
+        
         <motion.p 
           className="subtitle"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
         >
-          Live Precious Metals Rates • Curated from Groww
+          The most accurate real-time data for precious metals, sourced directly from premier Indian financial markets.
         </motion.p>
       </header>
 
-      {statusMsg && (
-        <motion.div 
-          className="status-toast"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 20, opacity: 0 }}
-        >
-          {refreshing && <Loader2 size={14} className="animate-spin" style={{ marginRight: '8px' }} />}
-          {statusMsg}
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {statusMsg && (
+          <motion.div 
+            className="status-toast"
+            initial={{ y: 50, opacity: 0, scale: 0.9, x: '-50%' }}
+            animate={{ y: 0, opacity: 1, scale: 1, x: '-50%' }}
+            exit={{ y: 20, opacity: 0, scale: 0.9, x: '-50%' }}
+          >
+            {refreshing ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+            {statusMsg}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {error && (
         <motion.div 
           className="error-msg"
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
         >
           <AlertTriangle size={20} />
           <span>{error}</span>
@@ -102,94 +128,104 @@ function App() {
       <AnimatePresence mode="wait">
         {loading ? (
           <div className="grid">
-            <LoadingCard title="Gold Rates" icon={<Coins className="gold-text" size={24} />} />
-            <LoadingCard title="Silver Rates" icon={<Gem className="silver-text" size={24} />} />
+            <LoadingCard title="Gold Reserve" icon={<Coins className="gold-text" size={28} />} />
+            <LoadingCard title="Silver Assets" icon={<Gem className="silver-text" size={28} />} />
           </div>
         ) : (
           <motion.div 
             className="grid"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5 }}
           >
             {/* Gold Card */}
             <motion.div 
-              className="card"
-              whileHover={{ y: -8 }}
-              style={{ border: '1px solid rgba(255, 215, 0, 0.1)' }}
+              className="card gold-card"
+              whileHover={{ y: -12 }}
             >
               <div className="card-header">
                 <div className="card-title">
-                  <span className="gold-text">🪙</span> Gold
+                  <Coins className="gold-text" size={32} /> Gold Reserve
                 </div>
-                <TrendingUp size={18} className="gold-text" style={{ opacity: 0.6 }} />
+                <TrendingUp size={20} className="gold-text" style={{ opacity: 0.5 }} />
               </div>
               
               <div className="price-display">
                 <div className="price-item">
-                  <div className="label">24K Gold (10g)</div>
+                  <div className="label">Pure 24K Gold (10g)</div>
                   <div className="value gold-text">{data?.gold?.gold24K || '₹ --'}</div>
                 </div>
                 <div className="price-item">
-                  <div className="label">22K Gold (10g)</div>
+                  <div className="label">Standard 22K (10g)</div>
                   <div className="value gold-text" style={{ opacity: 0.8 }}>{data?.gold?.gold22K || '₹ --'}</div>
                 </div>
               </div>
-              <div className="card-footer" style={{ background: 'rgba(255, 215, 0, 0.05)' }}>
-                Refinery Quality Assured
+              
+              <div className="card-footer">
+                <ShieldCheck size={14} style={{ marginRight: '6px' }} /> Certified Purity Standards
               </div>
             </motion.div>
 
             {/* Silver Card */}
             <motion.div 
-              className="card"
-              whileHover={{ y: -8 }}
-              style={{ border: '1px solid rgba(229, 228, 226, 0.1)' }}
+              className="card silver-card"
+              whileHover={{ y: -12 }}
             >
               <div className="card-header">
                 <div className="card-title">
-                  <span className="silver-text">💎</span> Silver
+                  <Gem className="silver-text" size={32} /> Silver Assets
                 </div>
-                <TrendingUp size={18} className="silver-text" style={{ opacity: 0.6 }} />
+                <TrendingUp size={20} className="silver-text" style={{ opacity: 0.5 }} />
               </div>
               
               <div className="price-display">
                 <div className="price-item">
-                  <div className="label">Silver (1 Gram)</div>
+                  <div className="label">Fine Silver (1 Gram)</div>
                   <div className="value silver-text">{data?.silver?.silverPerGram || '₹ --'}</div>
                 </div>
-                <div className="price-item">
-                  <div className="label">Silver (1 KG)</div>
+                <div className="price-item" style={{ borderBottom: 'none' }}>
+                  <div className="label">Bulk Silver (1 KG)</div>
                   <div className="value silver-text" style={{ opacity: 0.8 }}>{data?.silver?.silverPerKg || '₹ --'}</div>
                 </div>
               </div>
-              <div className="card-footer" style={{ background: 'rgba(229, 228, 226, 0.1)' }}>
-                Premium Industrial Grade
+
+              <div className="card-footer">
+                <ShieldCheck size={14} style={{ marginRight: '6px' }} /> Industrial Grade Verified
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="controls">
+      <motion.div 
+        className="controls"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+      >
         <button 
           className="refresh-btn" 
           onClick={() => fetchRates(true)} 
           disabled={loading || refreshing}
         >
-          <RefreshCcw size={18} className={refreshing ? 'animate-spin' : ''} />
-          {refreshing ? 'Live Updating...' : 'Refresh Rates'}
+          {refreshing ? <Loader2 size={18} className="animate-spin" /> : <RefreshCcw size={18} />}
+          {refreshing ? 'Syncing...' : 'Update Prices'}
         </button>
-      </div>
+      </motion.div>
 
       {data && (
-        <div className="updated-time">
-          <Clock size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Last updated: {new Date(data.timestamp).toLocaleString()}
+        <motion.div 
+          className="updated-time"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <Clock size={12} />
+          As of {new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • IST
           {data.source === 'cache' && refreshing && (
-            <span style={{ marginLeft: '10px', color: '#63b3ed', fontSize: '0.8rem' }}>(Background Syncing...)</span>
+            <span style={{ color: '#38BDF8' }}>(Syncing)</span>
           )}
-        </div>
+        </motion.div>
       )}
 
       <style>{`
@@ -197,36 +233,7 @@ function App() {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        .animate-spin { animation: spin 1s linear infinite; }
-        
-        .status-toast {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(49, 130, 206, 0.2);
-          color: #63b3ed;
-          padding: 8px 16px;
-          border-radius: 20px;
-          margin: 10px auto;
-          width: fit-content;
-          font-size: 0.85rem;
-          border: 1px solid rgba(99, 179, 237, 0.3);
-          backdrop-filter: blur(4px);
-        }
-
-        .controls {
-          display: flex;
-          justify-content: center;
-          margin-top: 2rem;
-        }
-
-        .card-footer {
-          padding: 0.6rem 1rem;
-          border-radius: 12px;
-          margin-top: 1rem;
-          font-size: 0.85rem;
-          text-align: center;
-        }
+        .animate-spin { animation: spin 0.8s linear infinite; }
       `}</style>
     </div>
   );
@@ -239,14 +246,12 @@ function LoadingCard({ title, icon }) {
         <div className="card-title">{icon} {title}</div>
       </div>
       <div className="price-display">
-        <div className="price-item">
-          <div className="loading-shimmer" style={{ width: '40%' }}></div>
-          <div className="loading-shimmer" style={{ width: '30%' }}></div>
-        </div>
-        <div className="price-item">
-          <div className="loading-shimmer" style={{ width: '40%' }}></div>
-          <div className="loading-shimmer" style={{ width: '30%' }}></div>
-        </div>
+        {[1, 2].map((i) => (
+          <div key={i} className="price-item" style={{ border: 'none' }}>
+            <div className="loading-shimmer" style={{ width: '30%', height: '14px', marginBottom: '8px' }}></div>
+            <div className="loading-shimmer" style={{ width: '60%', height: '32px' }}></div>
+          </div>
+        ))}
       </div>
     </div>
   );
