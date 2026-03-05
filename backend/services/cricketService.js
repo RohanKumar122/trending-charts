@@ -16,70 +16,73 @@ async function scrapeCricket() {
 
         const html = res.data;
         const matches = [];
+        const seenIds = new Set();
 
+        // Find all matchIds appearing in the raw HTML/payload
+        const idRegex = /matchId\\\":(\d+)/g;
+        let idMatch;
 
-        // Improved regex to find match info AND state
-        const matchRegex = /matchId\\\":(\d+),.*?seriesName\\\":\\\"(.*?)\\\",.*?matchDesc\\\":\\\"(.*?)\\\",.*?status\\\":\\\"(.*?)\\\",.*?state\\\":\\\"(.*?)\\\",.*?team1\\\":\{.*?teamName\\\":\\\"(.*?)\\\".*?team2\\\":\{.*?teamName\\\":\\\"(.*?)\\\"/g;
+        while ((idMatch = idRegex.exec(html)) !== null) {
+            const id = idMatch[1];
+            if (seenIds.has(id)) continue;
+            seenIds.add(id);
 
-        let match;
-        while ((match = matchRegex.exec(html)) !== null) {
-            const [full, id, series, desc, status, jsonState, t1, t2] = match;
+            // Pull a large enough chunk to contain match details and scores
+            const segment = html.substring(idMatch.index, idMatch.index + 8000);
 
-            // NEW: Larger segment to ensure we find the matchScore (5000 chars)
-            const nextMatchIdx = html.indexOf('matchId', match.index + 20);
-            const segmentEnd = nextMatchIdx > -1 ? nextMatchIdx : match.index + 5000;
-            const segment = html.substring(match.index, segmentEnd);
+            // Helper to clean and extract fields
+            const clean = (s) => (s || '').replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
+            const extract = (regex, index = 1) => {
+                const m = segment.match(regex);
+                return m ? clean(m[index]) : '';
+            };
 
-            // Clean escaped strings
-            const clean = (s) => s.replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
+            const series = extract(/seriesName\\\":\\\"(.*?)\\\"/);
+            const desc = extract(/matchDesc\\\":\\\"(.*?)\\\"/);
+            const status = extract(/status\\\":\\\"(.*?)\\\"/);
+            const stateRaw = extract(/state\\\":\\\"(.*?)\\\"/);
+            const team1 = extract(/team1\\\":\{[\s\S]*?teamName\\\":\\\"(.*?)\\\"/);
+            const team2 = extract(/team2\\\":\{[\s\S]*?teamName\\\":\\\"(.*?)\\\"/);
 
-            let s1 = '', s2 = '';
-            let state = clean(jsonState); // Use state from Cricbuzz: Live, Preview, Complete, Stumps, etc.
+            if (!series || !team1 || !team2) continue;
 
-            // Support both full score and partial score regexes
-            const scoreRegex = /matchScore\\\":\{.*?team1Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+)(?:,.*?overs\\\":\\\"([\d.]+)\\\")?.*?team2Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+)(?:,.*?overs\\\":\\\"([\d.]+)\\\")?/;
-            const scoreMatch = segment.match(scoreRegex);
+            const extractScore = (label) => {
+                const sReg = new RegExp(`${label}\\\\?\":\\{[\\s\\S]*?runs\\\\?\":(\\d+).*?wickets\\\\?\":(\\d+)`);
+                const oReg = new RegExp(`${label}\\\\?\":\\{[\\s\\S]*?overs\\\\?\":\\\\?\"?([\\d.]+)\\\\?\"?`);
 
-            if (scoreMatch) {
-                const r1 = scoreMatch[1], w1 = scoreMatch[2], ov1 = scoreMatch[3];
-                const r2 = scoreMatch[4], w2 = scoreMatch[5], ov2 = scoreMatch[6];
+                const sMatch = segment.match(sReg);
+                const oMatch = segment.match(oReg);
 
-                s1 = `${r1}/${w1}${ov1 ? ` (${ov1})` : ''}`;
-                s2 = `${r2}/${w2}${ov2 ? ` (${ov2})` : ''}`;
-            } else {
-                // Fallback for matches where only one team has a score so far
-                const s1m = segment.match(/team1Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+)/);
-                if (s1m) s1 = `${s1m[1]}/${s1m[2]}`;
-                const s2m = segment.match(/team2Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+)/);
-                if (s2m) s2 = `${s2m[1]}/${s2m[2]}`;
-            }
+                if (!sMatch) return '';
+                const base = `${sMatch[1]}/${sMatch[2]}`;
+                return oMatch ? `${base} (${oMatch[1]})` : base;
+            };
 
-            // Map special states to our frontend categories
+            const s1 = extractScore('team1Score');
+            const s2 = extractScore('team2Score');
+
+            // Map state to frontend types (Live, Preview, Complete)
             let mappedState = 'Live';
-            if (state === 'Preview') mappedState = 'Preview';
-            else if (state === 'Complete') mappedState = 'Complete';
-            else if (state === 'Stumps') mappedState = 'Live'; // Show Stumps matches as Live (active)
+            if (stateRaw === 'Preview' || status.toLowerCase().includes('match starts')) mappedState = 'Preview';
+            else if (stateRaw === 'Complete' || status.toLowerCase().includes('won by')) mappedState = 'Complete';
+            else if (stateRaw === 'Stumps' || stateRaw === 'Innings Break' || stateRaw === 'Tea' || stateRaw === 'Lunch') mappedState = 'Live';
 
-            if (!matches.some(m => String(m.matchId) === String(id))) {
-                let displayS1 = s1;
-                let displayS2 = s2;
-
-                // If match is active but scores are empty, it means they haven't started batting
-                if (mappedState === 'Live') {
-                    if (!displayS1) displayS1 = 'Yet to Bat';
-                    if (!displayS2) displayS2 = 'Yet to Bat';
-                }
-
-                matches.push({
-                    matchId: id,
-                    seriesName: clean(series),
-                    matchDesc: clean(desc),
-                    status: clean(status),
-                    team1: { name: clean(t1), score: displayS1 },
-                    team2: { name: clean(t2), score: displayS2 },
-                    state: mappedState
-                });
+            let displayS1 = s1;
+            let displayS2 = s2;
+            if (mappedState === 'Live') {
+                if (!displayS1) displayS1 = 'Yet to Bat';
+                if (!displayS2) displayS2 = 'Yet to Bat';
             }
+
+            matches.push({
+                matchId: id,
+                seriesName: series,
+                matchDesc: desc,
+                status: status,
+                team1: { name: team1, score: displayS1 },
+                team2: { name: team2, score: displayS2 },
+                state: mappedState
+            });
         }
 
         // Filter and Sort: Prioritize Live > Complete > Preview
@@ -107,15 +110,15 @@ async function scrapeCricket() {
 
         // CRITICAL FIX: Only update DB if we found at least one match with a score OR enough matches
         // This prevents overwriting with an empty list if the scrape is blocked.
-        const matchesWithScores = sortedMatches.filter(m => m.team1.score || m.team2.score).length;
+        const matchesWithScores = sortedMatches.filter(m => m.team1.score && m.team1.score !== 'Yet to Bat').length;
 
-        if (sortedMatches.length > 5 || matchesWithScores > 0) {
+        if (sortedMatches.length > 3 || matchesWithScores > 0) {
             console.log(`Updating MongoDB with ${sortedMatches.length} matches...`);
             await Cricket.deleteMany({});
             await Cricket.create(finalData);
             console.log('MongoDB Update Successful');
         } else {
-            console.log('--- WARNING: Poor scrap results. Skipping DB update to preserve cache. ---');
+            console.log('--- WARNING: Poor scrap results. Skipping DB update. ---');
         }
 
         return finalData;

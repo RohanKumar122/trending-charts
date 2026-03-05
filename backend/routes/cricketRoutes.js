@@ -19,6 +19,11 @@ router.get('/cricket-scores', async (req, res) => {
                 console.log(`Cricket cache stale (${Math.round(ageInMs / 1000)}s), fetching fresh scores...`);
                 try {
                     const freshData = await scrapeCricket();
+                    // NEW: If fresh scrape is empty, serve cache instead of empty list
+                    if ((!freshData.matches || freshData.matches.length === 0) && cachedData) {
+                        console.warn('Scrap returned empty, serving cache as fallback');
+                        return res.json({ ...cachedData.toObject(), source: 'stale' });
+                    }
                     return res.json({ ...freshData, source: 'live' });
                 } catch (scrapeErr) {
                     console.warn('Live refresh failed, serving stale cache:', scrapeErr.message);
@@ -32,8 +37,17 @@ router.get('/cricket-scores', async (req, res) => {
             });
         } else {
             console.log(forceRefresh ? 'Force refresh requested...' : 'No cricket cache, fetching live...');
-            const freshData = await scrapeCricket();
-            res.json({ ...freshData, source: 'live' });
+            try {
+                const freshData = await scrapeCricket();
+                // Fallback if initial fetch fails
+                if ((!freshData.matches || freshData.matches.length === 0) && cachedData) {
+                    return res.json({ ...cachedData.toObject(), source: 'stale' });
+                }
+                res.json({ ...freshData, source: 'live' });
+            } catch (err) {
+                if (cachedData) return res.json({ ...cachedData.toObject(), source: 'stale' });
+                throw err;
+            }
         }
     } catch (err) {
         console.error('Cricket route error:', err.message);
