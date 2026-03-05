@@ -25,26 +25,11 @@ function App() {
       const rates = response.data;
       setData(rates);
 
-      if (isManualRefresh && rates.source === 'cache') {
-        setStatusMsg('Updating to live market rates...');
-        
-        setTimeout(async () => {
-          try {
-            const retryResponse = await axios.get(API_URL);
-            setData(retryResponse.data);
-            setStatusMsg('Rates Synced');
-            setTimeout(() => setStatusMsg(''), 3000);
-          } catch (e) {
-            console.error('Retry failed', e);
-            setStatusMsg('Update failed. Try again.');
-            setTimeout(() => setStatusMsg(''), 3000);
-          } finally {
-            setRefreshing(false);
-          }
-        }, 18000);
-      } else {
-        setRefreshing(false);
+      if (isManualRefresh) {
+        setStatusMsg('Rates Synced');
+        setTimeout(() => setStatusMsg(''), 3000);
       }
+      setRefreshing(false);
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Unable to reach the server. Please check your connection.');

@@ -2,15 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-let puppeteer;
-let chromium;
-
-if (process.env.VERCEL) {
-    puppeteer = require('puppeteer-core');
-    chromium = require('@sparticuz/chromium');
-} else {
-    puppeteer = require('puppeteer-core');
-}
+const axios = require('axios');
+const cheerio = require('cheerio');
 
 const app = express();
 app.use(cors());
@@ -21,9 +14,9 @@ const GOLD_URL = process.env.GOLD_URL || 'https://groww.in/gold-rates';
 const SILVER_URL = process.env.SILVER_URL || 'https://groww.in/silver-rates';
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// MongoDB Setup - prevent crash if URI is missing
+// MongoDB Setup
 if (!MONGODB_URI) {
-    console.error('CRITICAL: MONGODB_URI is not defined in environment variables.');
+    console.error('CRITICAL: MONGODB_URI is not defined.');
 } else {
     mongoose.connect(MONGODB_URI)
         .then(() => console.log('Connected to MongoDB'))
@@ -34,156 +27,102 @@ const rateSchema = new mongoose.Schema({
     gold: {
         gold24K: String,
         gold22K: String,
-        num24K: Number, // Storing raw numbers for charts
+        num24K: Number,
         num22K: Number
     },
     silver: {
         silverPerGram: String,
         silverPerKg: String,
-        numGram: Number, // Storing raw numbers for charts
+        numGram: Number,
         numKg: Number
     },
     timestamp: { type: Date, default: Date.now },
-    istTimestamp: String // Readable IST time for debugging/analysis
+    istTimestamp: String
 });
 
 const Rate = mongoose.model('Rate', rateSchema);
 
+// Fast Scraping using axios + cheerio (Perfect for Vercel)
 async function scrapeRates() {
-    console.log('--- Starting Meta Scraping Cycle ---');
+    console.log('--- Starting Meta Scraping (Ultra-Fast) ---');
 
-    let browser;
     try {
-        if (process.env.VERCEL) {
-            browser = await puppeteer.launch({
-                args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
-                defaultViewport: chromium.defaultViewport,
-                executablePath: await chromium.executablePath(),
-                headless: chromium.headless,
-                ignoreHTTPSErrors: true,
-            });
-        } else {
-            const executablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-            browser = await puppeteer.launch({
-                executablePath: executablePath,
-                headless: true,
-                args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1920,1080']
-            });
-        }
-        const page = await browser.newPage();
+        // 1. Fetch Gold & Silver HTML in parallel
+        const [goldRes, silverRes] = await Promise.all([
+            axios.get(GOLD_URL, { headers: { 'User-Agent': 'Mozilla/5.0' } }),
+            axios.get(SILVER_URL, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+        ]);
 
-        // 1. GOLD
-        await page.goto(GOLD_URL, { waitUntil: 'networkidle2', timeout: 60000 });
-        await new Promise(r => setTimeout(r, 3000));
+        const format = (num) => {
+            if (!num) return null;
+            const rounded = Math.round(parseFloat(num.toString().replace(/[^\d.]/g, '')));
+            return `₹${rounded.toLocaleString('en-IN')}`;
+        };
 
-        const goldData = await page.evaluate(() => {
-            let g24 = null, g22 = null;
-            try {
-                const nextData = document.getElementById('__NEXT_DATA__');
-                if (nextData) {
-                    const data = JSON.parse(nextData.innerText);
-                    const recursiveSearch = (obj) => {
-                        if (!obj || typeof obj !== 'object') return;
-                        if (obj.twentyFourCaratTenGram && !g24) g24 = obj.twentyFourCaratTenGram;
-                        if (obj.twentyTwoCaratTenGram && !g22) g22 = obj.twentyTwoCaratTenGram;
-                        if (obj.spotPrice && !g24) g24 = obj.spotPrice;
-                        if (obj.TWENTY_TWO && !g22) g22 = obj.TWENTY_TWO * 10;
-                        if (g24 && g22) return;
-                        Object.values(obj).forEach(recursiveSearch);
-                    };
-                    recursiveSearch(data);
-                }
-            } catch (e) { }
+        const parseNum = (val) => {
+            if (!val) return 0;
+            return Math.round(parseFloat(val.toString().replace(/[^\d.]/g, '')));
+        };
 
-            const parseNum = (val) => {
-                if (!val) return 0;
-                return Math.round(parseFloat(val.toString().replace(/[^\d.]/g, '')));
+        const extractFromJson = (html) => {
+            const $ = cheerio.load(html);
+            const script = $('#__NEXT_DATA__').html();
+            if (!script) return {};
+            const data = JSON.parse(script);
+
+            let result = {};
+            const search = (obj) => {
+                if (!obj || typeof obj !== 'object') return;
+                if (obj.twentyFourCaratTenGram && !result.g24) result.g24 = obj.twentyFourCaratTenGram;
+                if (obj.twentyTwoCaratTenGram && !result.g22) result.g22 = obj.twentyTwoCaratTenGram;
+                if (obj.spotPrice && !result.spot) result.spot = obj.spotPrice;
+                if (obj.TWENTY_TWO && !result.t22) result.t22 = obj.TWENTY_TWO * 10;
+                if (Object.keys(result).length >= 4) return;
+                Object.values(obj).forEach(search);
             };
+            search(data);
+            return result;
+        };
 
-            const num24 = parseNum(g24);
-            const num22 = parseNum(g22);
+        const goldJson = extractFromJson(goldRes.data);
+        const silverJson = extractFromJson(silverRes.data);
 
-            return {
-                gold24K: `₹${num24.toLocaleString('en-IN')}`,
-                gold22K: `₹${num22.toLocaleString('en-IN')}`,
-                num24K: num24,
-                num22K: num22
-            };
-        });
+        const goldData = {
+            gold24K: format(goldJson.g24 || goldJson.spot),
+            gold22K: format(goldJson.g22 || goldJson.t22),
+            num24K: parseNum(goldJson.g24 || goldJson.spot),
+            num22K: parseNum(goldJson.g22 || goldJson.t22)
+        };
 
-        // 2. SILVER
-        await page.goto(SILVER_URL, { waitUntil: 'networkidle2', timeout: 60000 });
-        await new Promise(r => setTimeout(r, 2000));
+        const numKg = parseNum(silverJson.spot);
+        const numGram = parseFloat((numKg / 1000).toFixed(2));
+        const silverData = {
+            silverPerGram: `₹${numGram}`,
+            silverPerKg: format(numKg),
+            numGram: numGram,
+            numKg: numKg
+        };
 
-        const silverData = await page.evaluate(() => {
-            let kg = null;
-            try {
-                const nextData = document.getElementById('__NEXT_DATA__');
-                if (nextData) {
-                    const data = JSON.parse(nextData.innerText);
-                    const recursiveSearch = (obj) => {
-                        if (!obj || typeof obj !== 'object') return;
-                        if (obj.spotPrice && !kg) kg = obj.spotPrice;
-                        if (kg) return;
-                        Object.values(obj).forEach(recursiveSearch);
-                    };
-                    recursiveSearch(data);
-                }
-            } catch (e) { }
+        const now = new Date();
+        const istTime = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+        const finalData = {
+            gold: goldData,
+            silver: silverData,
+            timestamp: now,
+            istTimestamp: istTime
+        };
 
-            const parseNum = (val) => {
-                if (!val) return 0;
-                return Math.round(parseFloat(val.toString().replace(/[^\d.]/g, '')));
-            };
-
-            const numKg = parseNum(kg);
-            const numGram = parseFloat((numKg / 1000).toFixed(2));
-
-            return {
-                silverPerGram: numGram ? `₹${numGram}` : null,
-                silverPerKg: `₹${numKg.toLocaleString('en-IN')}`,
-                numGram: numGram,
-                numKg: numKg
-            };
-        });
-
-        // --- Analysis Logic: Check if we should insert a new record ---
-        // We only want to "append" if it's a new day or if the price changed significantly.
-        // For a simple chart, appending every time is fine, but to keep it clean:
-        const lastRate = await mongoose.model('Rate').findOne().sort({ timestamp: -1 });
-
-        let shouldInsert = true;
-        if (lastRate) {
-            const isSameDay = new Date(lastRate.timestamp).toDateString() === new Date().toDateString();
-            const samePrices = lastRate.gold.num24K === goldData.num24K && lastRate.silver.numKg === silverData.numKg;
-
-            // If it's the same day and prices haven't changed, we can skip OR just update the timestamp.
-            // But the user wants to "append", so we insert if it's a new day OR if price changed.
-            if (isSameDay && samePrices) {
-                console.log('Price same as last cache today. Skipping duplicate append.');
-                shouldInsert = false;
-            }
+        // Save to History (Append if new or changed)
+        const last = await Rate.findOne().sort({ timestamp: -1 });
+        if (!last || last.gold.num24K !== goldData.num24K || last.silver.numKg !== silverData.numKg || new Date(last.timestamp).toDateString() !== now.toDateString()) {
+            await Rate.create(finalData);
+            console.log('Appended to history.');
         }
 
-        if (shouldInsert) {
-            const now = new Date();
-            const istTime = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
-
-            await Rate.create({
-                gold: goldData,
-                silver: silverData,
-                timestamp: now,
-                istTimestamp: istTime
-            });
-            console.log('Successfully appended new rates to history');
-        }
-
-        return { gold: goldData, silver: silverData };
+        return finalData;
     } catch (err) {
-        console.error('Scraping error:', err);
+        console.error('Fast Scraping Error:', err.message);
         throw err;
-    } finally {
-        if (browser) await browser.close();
     }
 }
 
@@ -192,36 +131,34 @@ app.get('/api/rates', async (req, res) => {
         const cachedData = await Rate.findOne().sort({ timestamp: -1 });
 
         if (cachedData) {
-            res.json({
-                gold: cachedData.gold,
-                silver: cachedData.silver,
-                timestamp: cachedData.timestamp,
-                source: 'cache'
-            });
-
+            // Check if data is stale (> 5 minutes)
             const ageInMs = new Date() - new Date(cachedData.timestamp);
             if (ageInMs > 5 * 60 * 1000) {
-                scrapeRates().catch(e => console.error('Background refresh failed:', e));
+                console.log('Cache stale, refreshing...');
+                try {
+                    const freshData = await scrapeRates();
+                    return res.json({ ...freshData, source: 'live' });
+                } catch (e) {
+                    console.log('Scrape failed, returning stale cache');
+                    return res.json({ ...cachedData.toObject(), source: 'cache_stale' });
+                }
             }
+
+            return res.json({
+                ...cachedData.toObject(),
+                source: 'cache'
+            });
         } else {
             const freshData = await scrapeRates();
-            const now = new Date();
-            res.json({
-                ...freshData,
-                source: 'live',
-                timestamp: now,
-                istTimestamp: now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-            });
+            res.json({ ...freshData, source: 'live' });
         }
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// New Endpoint for Chart Data
 app.get('/api/history', async (req, res) => {
     try {
-        // Get last 30 days of data for the chart
         const history = await Rate.find().sort({ timestamp: 1 }).limit(100);
         res.json(history);
     } catch (err) {
@@ -233,4 +170,4 @@ app.get('/health', (req, res) => {
     res.json({ status: 'OK', mongo: mongoose.connection.readyState === 1 });
 });
 
-app.listen(PORT, () => console.log(`Backend Server running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
