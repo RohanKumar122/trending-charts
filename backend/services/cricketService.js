@@ -4,6 +4,44 @@ const Cricket = require('../models/Cricket');
 
 const CRICKET_URL = 'https://www.cricbuzz.com/cricket-match/live-scores';
 
+/**
+ * Converts "Mar 05, 13:30 GMT" to "Mar 05, 19:00 IST"
+ */
+function convertToIST(status) {
+    if (!status || typeof status !== 'string') return status;
+
+    // Regex matches "Mar 05, 13:30 GMT"
+    const gmtRegex = /(\w{3} \d{1,2}, \d{2}:\d{2}) GMT/g;
+
+    return status.replace(gmtRegex, (match, dateTimeStr) => {
+        try {
+            const currentYear = new Date().getFullYear();
+            const date = new Date(`${dateTimeStr} ${currentYear} GMT`);
+
+            if (isNaN(date.getTime())) return match;
+
+            const options = {
+                timeZone: 'Asia/Kolkata',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            };
+
+            const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(date);
+            const p = {};
+            parts.forEach(part => p[part.type] = part.value);
+
+            // Format to "Mar 05, 19:00 IST"
+            return `${p.month} ${p.day}, ${p.hour}:${p.minute} IST`;
+        } catch (e) {
+            console.error('Time conversion error:', e.message);
+            return match;
+        }
+    });
+}
+
 async function scrapeCricket() {
     console.log('--- Starting Cricket Robust Scraping ---');
     try {
@@ -58,7 +96,7 @@ async function scrapeCricket() {
                     matchId: id,
                     seriesName: clean(series),
                     matchDesc: clean(desc),
-                    status: clean(status),
+                    status: convertToIST(clean(status)),
                     team1: { name: clean(t1), score: s1 },
                     team2: { name: clean(t2), score: s2 },
                     state: state
@@ -76,7 +114,7 @@ async function scrapeCricket() {
                         matchId: id,
                         seriesName: series,
                         matchDesc: desc,
-                        status: status,
+                        status: convertToIST(status),
                         team1: { name: t1, score: '' },
                         team2: { name: t2, score: '' },
                         state: 'Live'
@@ -109,3 +147,4 @@ async function scrapeCricket() {
 }
 
 module.exports = { scrapeCricket };
+

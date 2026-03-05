@@ -297,15 +297,15 @@ function App() {
         </button>
       </motion.div>
 
-      {data && (
+      {(activeTab === 'metals' ? data : cricketData) && (
         <motion.div 
           className="updated-time"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
           <Clock size={12} />
-          As of {new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • IST
-          {data.source === 'cache' && refreshing && (
+          As of {new Date(activeTab === 'metals' ? data?.timestamp : cricketData?.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • IST
+          {(activeTab === 'metals' ? data : cricketData)?.source === 'cache' && refreshing && (
             <span style={{ color: '#38BDF8' }}>(Syncing)</span>
           )}
         </motion.div>
