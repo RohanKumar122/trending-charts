@@ -6,9 +6,10 @@ const { scrapeRates } = require('../services/scraperService');
 // Get latest rates with caching
 router.get('/rates', async (req, res) => {
     try {
-        const cachedData = await Rate.findOne().sort({ timestamp: -1 });
+        const forceRefresh = req.query.refresh === 'true';
+        let cachedData = await Rate.findOne().sort({ timestamp: -1 });
 
-        if (cachedData) {
+        if (cachedData && !forceRefresh) {
             // Check if data is stale (> 6 hours - roughly 4 times a day)
             const ageInMs = new Date() - new Date(cachedData.timestamp);
             if (ageInMs > 6 * 60 * 60 * 1000) {
@@ -22,6 +23,7 @@ router.get('/rates', async (req, res) => {
                 source: 'cache'
             });
         } else {
+            console.log(forceRefresh ? 'Forced refresh requested...' : 'No cache found, scraping...');
             const freshData = await scrapeRates();
             res.json({ ...freshData, source: 'live' });
         }

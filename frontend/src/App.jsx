@@ -19,8 +19,8 @@ function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
 
-  const fetchRates = async (isManualRefresh = false) => {
-    const RATES_URL = `${BASE_API}/api/rates`;
+    const fetchRates = async (isManualRefresh = false) => {
+    const RATES_URL = `${BASE_API}/api/rates${isManualRefresh ? '?refresh=true' : ''}`;
     if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
     
@@ -44,7 +44,7 @@ function App() {
   };
 
   const fetchCricket = async (isManualRefresh = false) => {
-    const CRICKET_END = `${BASE_API}/api/cricket-scores`;
+    const CRICKET_END = `${BASE_API}/api/cricket-scores${isManualRefresh ? '?refresh=true' : ''}`;
     if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
     
