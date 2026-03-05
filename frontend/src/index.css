@@ -315,6 +315,136 @@ h1 {
   cursor: wait;
 }
 
+/* Tab Navigation */
+.tab-nav {
+  display: flex;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px;
+  border-radius: 20px;
+  border: 1px solid var(--card-border);
+  width: fit-content;
+  margin: 1.5rem auto 0;
+  gap: 8px;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 10px 24px;
+  border-radius: 14px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+}
+
+/* Cricket Specifics */
+.cricket-card {
+  border-left: 4px solid var(--accent);
+  gap: 1.25rem;
+}
+
+.match-series {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+.match-teams {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.team-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.team-name {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+}
+
+.team-score {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.match-status {
+  font-size: 0.938rem;
+  font-weight: 500;
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.match-status.live {
+  color: #10B981;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: #10B981;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #10B981;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.4;
+  }
+}
+
+.match-desc {
+  font-size: 0.813rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  opacity: 0.6;
+}
+
+@media (max-width: 480px) {
+
+  .team-name,
+  .team-score {
+    font-size: 1.125rem;
+  }
+
+  .tab-btn {
+    padding: 8px 16px;
+    font-size: 0.875rem;
+  }
+}
+
 .updated-time {
   text-align: center;
   color: var(--text-secondary);

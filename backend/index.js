@@ -4,6 +4,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const rateRoutes = require('./routes/rateRoutes');
+const cricketRoutes = require('./routes/cricketRoutes');
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,7 @@ connectDB();
 
 // API Routes
 app.use('/api', rateRoutes);
+app.use('/api', cricketRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {
