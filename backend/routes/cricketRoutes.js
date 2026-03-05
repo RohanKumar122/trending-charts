@@ -8,17 +8,11 @@ router.get('/cricket-scores', async (req, res) => {
         let cachedData = await Cricket.findOne().sort({ timestamp: -1 });
 
         if (cachedData) {
-            // Refresh if older than 1 minute (for live sports)
             const ageInMs = new Date() - new Date(cachedData.timestamp);
             if (ageInMs > 1 * 60 * 1000) {
-                console.log('Cricket cache stale, refreshing...');
-                try {
-                    const freshData = await scrapeCricket();
-                    return res.json({ ...freshData, source: 'live' });
-                } catch (e) {
-                    console.log('Cricket scrape failed, returning old cache');
-                    return res.json({ ...cachedData.toObject(), source: 'cache_stale' });
-                }
+                console.log('Cricket cache stale, refreshing in background...');
+                // Background refresh, don't await
+                scrapeCricket().catch(e => console.log('Background cricket scrape failed', e.message));
             }
 
             return res.json({
