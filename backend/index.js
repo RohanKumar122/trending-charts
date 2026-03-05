@@ -39,7 +39,8 @@ const rateSchema = new mongoose.Schema({
         numGram: Number, // Storing raw numbers for charts
         numKg: Number
     },
-    timestamp: { type: Date, default: Date.now }
+    timestamp: { type: Date, default: Date.now },
+    istTimestamp: String // Readable IST time for debugging/analysis
 });
 
 const Rate = mongoose.model('Rate', rateSchema);
@@ -161,7 +162,15 @@ async function scrapeRates() {
         }
 
         if (shouldInsert) {
-            await Rate.create({ gold: goldData, silver: silverData });
+            const now = new Date();
+            const istTime = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+
+            await Rate.create({
+                gold: goldData,
+                silver: silverData,
+                timestamp: now,
+                istTimestamp: istTime
+            });
             console.log('Successfully appended new rates to history');
         }
 
@@ -192,7 +201,13 @@ app.get('/api/rates', async (req, res) => {
             }
         } else {
             const freshData = await scrapeRates();
-            res.json({ ...freshData, source: 'live', timestamp: new Date() });
+            const now = new Date();
+            res.json({
+                ...freshData,
+                source: 'live',
+                timestamp: now,
+                istTimestamp: now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+            });
         }
     } catch (err) {
         res.status(500).json({ error: err.message });
