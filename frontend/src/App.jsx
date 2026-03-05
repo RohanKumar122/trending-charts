@@ -576,17 +576,15 @@ function HistoryModal({ isOpen, onClose, metal, data, loading }) {
 
         <div className="history-list">
           <h3>Recent Updates</h3>
-          <div className="list-items">
+          <div className="list-items ">
             {[...filteredData].reverse().slice(0, 5).map((item, i, arr) => {
               const prev = arr[i + 1];
               const diff = prev ? item.price - prev.price : 0;
               return (
-                <div key={i} className="history-item">
+                <div key={i} className="history-item flex justify-between">
                   <span className="time">{item.time}</span>
                   <span className="price">{safePrice(item.price)}</span>
-                  {/* <span className={`diff ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}`}>
-                    {diff !== 0 ? `${diff > 0 ? '+' : ''}${Number(diff).toLocaleString('en-IN')}` : '—'}
-                  </span> */}
+                
                 </div>
               );
             })}
