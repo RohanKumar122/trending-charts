@@ -60,7 +60,7 @@ function App() {
   };
 
   const fetchCricket = async (isManualRefresh = false) => {
-    const CRICKET_END = `${BASE_API}/api/cricket-scores`;
+    const CRICKET_END = `${BASE_API}/api/cricket-scores${isManualRefresh ? '?refresh=true' : ''}`;
     if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
     setCricketError(null);
