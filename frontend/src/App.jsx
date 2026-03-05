@@ -95,7 +95,7 @@ function App() {
             marginBottom: '1rem'
           }}
         >
-          <Sparkles size={14} /> LIVE PRICE TICKER
+          <Sparkles size={14} /> LIVE TICKER
         </motion.div>
         
         <motion.h1 
