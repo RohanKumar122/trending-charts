@@ -102,33 +102,47 @@ function App() {
   }, [isAutoRefresh, activeTab]);
 
   const getPriceTrend = (metal) => {
-    if (historyData.length < 2) return { diff: 0, percent: 0, direction: 'none' };
+    if (!historyData || !Array.isArray(historyData) || historyData.length < 2) {
+      return { diff: 0, percent: 0, direction: 'none' };
+    }
     
-    // Sort history by time descending to get the latest and previous
-    const sorted = [...historyData].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    const latest = sorted[0];
-    const previous = sorted[1];
+    // Filter out malformed records and sort by time descending
+    const validHistory = historyData
+      .filter(item => item && item.gold && item.silver)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    if (validHistory.length < 2) return { diff: 0, percent: 0, direction: 'none' };
+    
+    const latest = validHistory[0];
+    const previous = validHistory[1];
 
     let currentVal, previousVal;
     
-    if (metal === 'gold') {
-      currentVal = latest.gold.num24K;
-      previousVal = previous.gold.num24K;
-    } else {
-      currentVal = latest.silver.numKg;
-      previousVal = previous.silver.numKg;
+    try {
+      if (metal === 'gold') {
+        currentVal = latest.gold?.num24K;
+        previousVal = previous.gold?.num24K;
+      } else {
+        currentVal = latest.silver?.numKg;
+        previousVal = previous.silver?.numKg;
+      }
+
+      if (currentVal === undefined || previousVal === undefined || previousVal === 0) {
+        return { diff: 0, percent: 0, direction: 'none' };
+      }
+
+      const diff = currentVal - previousVal;
+      const percent = ((diff / previousVal) * 100).toFixed(2);
+      
+      return {
+        diff,
+        percent: Math.abs(percent),
+        direction: diff > 0 ? 'up' : diff < 0 ? 'down' : 'none'
+      };
+    } catch (e) {
+      console.error("Trend calculation error:", e);
+      return { diff: 0, percent: 0, direction: 'none' };
     }
-
-    if (!currentVal || !previousVal) return { diff: 0, percent: 0, direction: 'none' };
-
-    const diff = currentVal - previousVal;
-    const percent = ((diff / previousVal) * 100).toFixed(2);
-    
-    return {
-      diff,
-      percent: Math.abs(percent),
-      direction: diff > 0 ? 'up' : diff < 0 ? 'down' : 'none'
-    };
   };
 
   const TrendBadge = ({ trend }) => {
@@ -404,11 +418,13 @@ function App() {
 function HistoryModal({ isOpen, onClose, metal, data, loading }) {
   if (!isOpen) return null;
 
-  const filteredData = data.map(item => ({
-    time: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }),
-    price: metal === 'gold' ? item.gold.num24K : item.silver.numKg,
-    rawTime: new Date(item.timestamp)
-  })).sort((a, b) => a.rawTime - b.rawTime);
+  const filteredData = data
+    .filter(item => item && item.gold && item.silver)
+    .map(item => ({
+      time: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }),
+      price: metal === 'gold' ? item.gold.num24K : item.silver.numKg,
+      rawTime: new Date(item.timestamp)
+    })).sort((a, b) => a.rawTime - b.rawTime);
 
   const metalName = metal === 'gold' ? 'Gold (24K)' : 'Silver (1KG)';
   const color = metal === 'gold' ? '#FFD700' : '#E5E4E2';
