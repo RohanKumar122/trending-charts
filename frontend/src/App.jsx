@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/rates';
+const BASE_API = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/rates').replace('/api/rates', '');
 
 function App() {
   const [data, setData] = useState(null);
@@ -19,7 +19,7 @@ function App() {
   const [statusMsg, setStatusMsg] = useState('');
 
   const fetchRates = async (isManualRefresh = false) => {
-    const RATES_URL = API_URL.includes('/api/rates') ? API_URL : API_URL.replace('/api/rates', '') + '/api/rates';
+    const RATES_URL = `${BASE_API}/api/rates`;
     if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
     
@@ -43,7 +43,7 @@ function App() {
   };
 
   const fetchCricket = async (isManualRefresh = false) => {
-    const CRICKET_END = API_URL.replace('/api/rates', '') + '/api/cricket-scores';
+    const CRICKET_END = `${BASE_API}/api/cricket-scores`;
     if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
     
