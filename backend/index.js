@@ -21,10 +21,14 @@ const GOLD_URL = process.env.GOLD_URL || 'https://groww.in/gold-rates';
 const SILVER_URL = process.env.SILVER_URL || 'https://groww.in/silver-rates';
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// MongoDB Setup
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('MongoDB connection error:', err));
+// MongoDB Setup - prevent crash if URI is missing
+if (!MONGODB_URI) {
+    console.error('CRITICAL: MONGODB_URI is not defined in environment variables.');
+} else {
+    mongoose.connect(MONGODB_URI)
+        .then(() => console.log('Connected to MongoDB'))
+        .catch(err => console.error('MongoDB connection error:', err));
+}
 
 const rateSchema = new mongoose.Schema({
     gold: {
@@ -52,7 +56,7 @@ async function scrapeRates() {
     try {
         if (process.env.VERCEL) {
             browser = await puppeteer.launch({
-                args: chromium.args,
+                args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
                 defaultViewport: chromium.defaultViewport,
                 executablePath: await chromium.executablePath(),
                 headless: chromium.headless,

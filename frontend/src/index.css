@@ -67,6 +67,7 @@ h1 {
   letter-spacing: -0.04em;
   background: linear-gradient(to bottom, #fff 0%, #94a3b8 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.75rem;
 }
@@ -183,6 +184,7 @@ h1 {
 .gold-text {
   background: var(--gold-gradient);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
