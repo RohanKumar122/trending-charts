@@ -581,10 +581,9 @@ function HistoryModal({ isOpen, onClose, metal, data, loading }) {
               const prev = arr[i + 1];
               const diff = prev ? item.price - prev.price : 0;
               return (
-                <div key={i} className="history-item flex justify-between">
+                <div key={i} className="history-item">
                   <span className="time">{item.time}</span>
                   <span className="price">{safePrice(item.price)}</span>
-                
                 </div>
               );
             })}
