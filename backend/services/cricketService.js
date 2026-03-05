@@ -26,7 +26,10 @@ async function scrapeCricket() {
         while ((match = matchRegex.exec(html)) !== null) {
             const [full, id, series, desc, status, t1, t2] = match;
 
-            const segment = html.substring(match.index, match.index + 3000);
+            // NEW: Bound the segment to only THIS match object to prevent picking up the next match's score
+            const nextMatchIdx = html.indexOf('matchId', match.index + 20);
+            const segmentEnd = nextMatchIdx > -1 ? nextMatchIdx : match.index + 3000;
+            const segment = html.substring(match.index, segmentEnd);
 
             // Try to find the score in the same escaped format
             const scoreRegex = /matchScore\\\":\{.*?team1Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+),.*?overs\\\":\\\"([\d.]+)\\\".*?team2Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+),.*?overs\\\":\\\"([\d.]+)\\\"/;
@@ -49,13 +52,15 @@ async function scrapeCricket() {
             }
 
             if (!matches.some(m => m.matchId === id)) {
+                // Cleaning up escaped double quotes properly
+                const clean = (s) => s.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
                 matches.push({
                     matchId: id,
-                    seriesName: series.replace(/\\\\"/g, '"'),
-                    matchDesc: desc.replace(/\\\\"/g, '"'),
-                    status: status.replace(/\\\\"/g, '"'),
-                    team1: { name: t1.replace(/\\\\"/g, '"'), score: s1 },
-                    team2: { name: t2.replace(/\\\\"/g, '"'), score: s2 },
+                    seriesName: clean(series),
+                    matchDesc: clean(desc),
+                    status: clean(status),
+                    team1: { name: clean(t1), score: s1 },
+                    team2: { name: clean(t2), score: s2 },
                     state: state
                 });
             }
