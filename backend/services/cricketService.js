@@ -18,47 +18,54 @@ async function scrapeCricket() {
         const matches = [];
 
 
-        // This regex is very specific to the Next.js chunked format we saw in the logs
-        const matchRegex = /matchId\\\":(\d+),.*?seriesName\\\":\\\"(.*?)\\\",.*?matchDesc\\\":\\\"(.*?)\\\",.*?status\\\":\\\"(.*?)\\\",.*?team1\\\":\{.*?teamName\\\":\\\"(.*?)\\\".*?team2\\\":\{.*?teamName\\\":\\\"(.*?)\\\"/g;
+        // Improved regex to find match info AND state
+        const matchRegex = /matchId\\\":(\d+),.*?seriesName\\\":\\\"(.*?)\\\",.*?matchDesc\\\":\\\"(.*?)\\\",.*?status\\\":\\\"(.*?)\\\",.*?state\\\":\\\"(.*?)\\\",.*?team1\\\":\{.*?teamName\\\":\\\"(.*?)\\\".*?team2\\\":\{.*?teamName\\\":\\\"(.*?)\\\"/g;
 
         let match;
         while ((match = matchRegex.exec(html)) !== null) {
-            const [full, id, series, desc, status, t1, t2] = match;
+            const [full, id, series, desc, status, jsonState, t1, t2] = match;
 
-            // NEW: Bound the segment to only THIS match object to prevent picking up the next match's score
+            // NEW: Larger segment to ensure we find the matchScore (5000 chars)
             const nextMatchIdx = html.indexOf('matchId', match.index + 20);
-            const segmentEnd = nextMatchIdx > -1 ? nextMatchIdx : match.index + 3000;
+            const segmentEnd = nextMatchIdx > -1 ? nextMatchIdx : match.index + 5000;
             const segment = html.substring(match.index, segmentEnd);
 
-            // Try to find the score in the same escaped format
-            const scoreRegex = /matchScore\\\":\{.*?team1Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+),.*?overs\\\":\\\"([\d.]+)\\\".*?team2Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+),.*?overs\\\":\\\"([\d.]+)\\\"/;
-            const scoreMatch = segment.match(scoreRegex);
+            // Clean escaped strings
+            const clean = (s) => s.replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
 
             let s1 = '', s2 = '';
-            let state = 'Preview';
+            let state = clean(jsonState); // Use state from Cricbuzz: Live, Preview, Complete, Stumps, etc.
+
+            // Support both full score and partial score regexes
+            const scoreRegex = /matchScore\\\":\{.*?team1Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+)(?:,.*?overs\\\":\\\"([\d.]+)\\\")?.*?team2Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+)(?:,.*?overs\\\":\\\"([\d.]+)\\\")?/;
+            const scoreMatch = segment.match(scoreRegex);
 
             if (scoreMatch) {
-                s1 = `${scoreMatch[1]}/${scoreMatch[2]} (${scoreMatch[3]})`;
-                s2 = `${scoreMatch[4]}/${scoreMatch[5]} (${scoreMatch[6]})`;
-                state = 'Live';
+                const r1 = scoreMatch[1], w1 = scoreMatch[2], ov1 = scoreMatch[3];
+                const r2 = scoreMatch[4], w2 = scoreMatch[5], ov2 = scoreMatch[6];
+
+                s1 = `${r1}/${w1}${ov1 ? ` (${ov1})` : ''}`;
+                s2 = `${r2}/${w2}${ov2 ? ` (${ov2})` : ''}`;
             } else {
-                // Try simpler score check
+                // Fallback for matches where only one team has a score so far
                 const s1m = segment.match(/team1Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+)/);
-                const s2m = segment.match(/team2Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+)/);
                 if (s1m) s1 = `${s1m[1]}/${s1m[2]}`;
+                const s2m = segment.match(/team2Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+)/);
                 if (s2m) s2 = `${s2m[1]}/${s2m[2]}`;
-                if (s1m || s2m) state = 'Live';
             }
 
-            if (!matches.some(m => String(m.matchId) === String(id))) {
-                // Cleaning up escaped double quotes properly
-                const clean = (s) => s.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            // Map special states to our frontend categories
+            let mappedState = 'Live';
+            if (state === 'Preview') mappedState = 'Preview';
+            else if (state === 'Complete') mappedState = 'Complete';
+            else if (state === 'Stumps') mappedState = 'Live'; // Show Stumps matches as Live (active)
 
-                // If match is Live but score is empty, it means they haven't started batting
+            if (!matches.some(m => String(m.matchId) === String(id))) {
                 let displayS1 = s1;
                 let displayS2 = s2;
 
-                if (state === 'Live') {
+                // If match is active but scores are empty, it means they haven't started batting
+                if (mappedState === 'Live') {
                     if (!displayS1) displayS1 = 'Yet to Bat';
                     if (!displayS2) displayS2 = 'Yet to Bat';
                 }
@@ -70,20 +77,19 @@ async function scrapeCricket() {
                     status: clean(status),
                     team1: { name: clean(t1), score: displayS1 },
                     team2: { name: clean(t2), score: displayS2 },
-                    state: state
+                    state: mappedState
                 });
             }
         }
 
         // Filter and Sort: Prioritize Live > Complete > Preview
-        // Also remove previews that are too far in the future if we have enough live data
         const sortedMatches = matches.sort((a, b) => {
             const states = { 'Live': 0, 'Complete': 1, 'Preview': 2 };
-            return states[a.state] - states[b.state];
+            return (states[a.state] ?? 1) - (states[b.state] ?? 1);
         });
 
         const now = new Date();
-        const istTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+        const istTime = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
 
         const finalData = {
             matches: sortedMatches,
@@ -92,21 +98,24 @@ async function scrapeCricket() {
             count: sortedMatches.length
         };
 
-        // Save to file as fallback/log (non-fatal — production may have read-only FS)
+        // Save to file (fallback)
         try {
             fs.writeFileSync('./cricket_scores.json', JSON.stringify(finalData, null, 2));
         } catch (fsErr) {
-            console.warn('Could not write cricket_scores.json (likely read-only FS in production):', fsErr.message);
+            // Ignore write errors in serverless environments
         }
 
-        // CRITICAL FIX: Only update DB if we found matches!
-        if (sortedMatches.length > 0) {
+        // CRITICAL FIX: Only update DB if we found at least one match with a score OR enough matches
+        // This prevents overwriting with an empty list if the scrape is blocked.
+        const matchesWithScores = sortedMatches.filter(m => m.team1.score || m.team2.score).length;
+
+        if (sortedMatches.length > 5 || matchesWithScores > 0) {
             console.log(`Updating MongoDB with ${sortedMatches.length} matches...`);
             await Cricket.deleteMany({});
             await Cricket.create(finalData);
             console.log('MongoDB Update Successful');
         } else {
-            console.log('--- WARNING: No matches found during scrap. Skipping DB update to preserve cache. ---');
+            console.log('--- WARNING: Poor scrap results. Skipping DB update to preserve cache. ---');
         }
 
         return finalData;
