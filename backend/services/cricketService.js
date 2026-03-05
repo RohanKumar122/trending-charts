@@ -53,52 +53,43 @@ async function scrapeCricket() {
             if (!matches.some(m => String(m.matchId) === String(id))) {
                 // Cleaning up escaped double quotes properly
                 const clean = (s) => s.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+
+                // If match is Live but score is empty, it means they haven't started batting
+                let displayS1 = s1;
+                let displayS2 = s2;
+
+                if (state === 'Live') {
+                    if (!displayS1) displayS1 = 'Yet to Bat';
+                    if (!displayS2) displayS2 = 'Yet to Bat';
+                }
+
                 matches.push({
                     matchId: id,
                     seriesName: clean(series),
                     matchDesc: clean(desc),
                     status: clean(status),
-                    team1: { name: clean(t1), score: s1 },
-                    team2: { name: clean(t2), score: s2 },
+                    team1: { name: clean(t1), score: displayS1 },
+                    team2: { name: clean(t2), score: displayS2 },
                     state: state
                 });
             }
         }
 
-        // 3. Fallback: Parse from __NEXT_DATA__ or self.__next_f script tags
-        if (matches.length === 0) {
-            const $ = cheerio.load(html);
-            $('script').each((i, el) => {
-                const content = $(el).html();
-                if (content && content.includes('matchId')) {
-                    // Try to find the JSON-like objects in the script chunks
-                    const regex = /\{"matchId":(\d+),.*?"team1":\{.*?"teamName":"(.*?)"\}.*?"team2":\{.*?"teamName":"(.*?)"\}/g;
-                    let m;
-                    while ((m = regex.exec(content)) !== null) {
-                        if (!matches.some(x => x.matchId === m[1])) {
-                            matches.push({
-                                matchId: m[1],
-                                seriesName: "Unknown Series",
-                                matchDesc: "Match",
-                                status: "Live",
-                                team1: { name: m[2], score: '' },
-                                team2: { name: m[3], score: '' },
-                                state: 'Live'
-                            });
-                        }
-                    }
-                }
-            });
-        }
+        // Filter and Sort: Prioritize Live > Complete > Preview
+        // Also remove previews that are too far in the future if we have enough live data
+        const sortedMatches = matches.sort((a, b) => {
+            const states = { 'Live': 0, 'Complete': 1, 'Preview': 2 };
+            return states[a.state] - states[b.state];
+        });
 
         const now = new Date();
         const istTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
 
         const finalData = {
-            matches,
+            matches: sortedMatches,
             timestamp: now,
             istTimestamp: istTime,
-            count: matches.length
+            count: sortedMatches.length
         };
 
         // Save to file as fallback/log (non-fatal — production may have read-only FS)
@@ -109,10 +100,8 @@ async function scrapeCricket() {
         }
 
         // CRITICAL FIX: Only update DB if we found matches!
-        if (matches.length > 0) {
-            console.log(`Updating MongoDB with ${matches.length} matches...`);
-            // Use findOneAndReplace or deleteMany/create
-            // We'll stick to delete/create but only if we have data
+        if (sortedMatches.length > 0) {
+            console.log(`Updating MongoDB with ${sortedMatches.length} matches...`);
             await Cricket.deleteMany({});
             await Cricket.create(finalData);
             console.log('MongoDB Update Successful');

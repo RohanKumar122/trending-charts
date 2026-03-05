@@ -4,14 +4,14 @@
       "matchId": "139478",
       "seriesName": "ICC Men's T20 World Cup 2026",
       "matchDesc": "2nd Semi-Final",
-      "status": "England need 159 runs in 75 balls",
+      "status": "England need 130 runs in 59 balls",
       "team1": {
         "name": "India",
         "score": "253/7"
       },
       "team2": {
         "name": "England",
-        "score": "95/4"
+        "score": "124/4"
       },
       "state": "Live"
     },
@@ -196,7 +196,7 @@
       "state": "Preview"
     }
   ],
-  "timestamp": "2026-03-05T16:10:55.375Z",
-  "istTimestamp": "3/5/2026, 9:40:55 PM",
+  "timestamp": "2026-03-05T16:23:07.945Z",
+  "istTimestamp": "3/5/2026, 9:53:07 PM",
   "count": 13
 }
