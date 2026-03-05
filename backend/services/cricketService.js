@@ -5,7 +5,7 @@ const Cricket = require('../models/Cricket');
 const CRICKET_URL = 'https://www.cricbuzz.com/cricket-match/live-scores';
 
 async function scrapeCricket() {
-    console.log('--- Starting Cricket Payload Scraping ---');
+    console.log('--- Starting Cricket Robust Scraping ---');
     try {
         const res = await axios.get(CRICKET_URL, {
             headers: {
@@ -19,76 +19,64 @@ async function scrapeCricket() {
         // Save raw as requested by user
         fs.writeFileSync('./cricket_raw.html', html);
 
-        // This regex looks for the JSON-like payload of matches
-        // It's very common in Cricbuzz's Next.js implementation
-        const matchDataRegex = /\"matches\":\[(.*?)\]/g;
-        let matchResult;
+        // This regex is very specific to the Next.js chunked format we saw in the logs
+        const matchRegex = /matchId\\\":(\d+),.*?seriesName\\\":\\\"(.*?)\\\",.*?matchDesc\\\":\\\"(.*?)\\\",.*?status\\\":\\\"(.*?)\\\",.*?team1\\\":\{.*?teamName\\\":\\\"(.*?)\\\".*?team2\\\":\{.*?teamName\\\":\\\"(.*?)\\\"/g;
 
-        while ((matchResult = matchDataRegex.exec(html)) !== null) {
-            try {
-                const jsonStr = `{"matches":[${matchResult[1]}]}`;
-                // Clean up escaped quotes if any
-                const parsed = JSON.parse(jsonStr.replace(/\\\"/g, '"'));
+        let match;
+        while ((match = matchRegex.exec(html)) !== null) {
+            const [full, id, series, desc, status, t1, t2] = match;
 
-                parsed.matches.forEach(m => {
-                    const info = m.match?.matchInfo || m.matchInfo;
-                    const score = m.match?.matchScore || m.matchScore;
+            const segment = html.substring(match.index, match.index + 3000);
 
-                    if (!info || !info.team1) return;
+            // Try to find the score in the same escaped format
+            const scoreRegex = /matchScore\\\":\{.*?team1Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+),.*?overs\\\":\\\"([\d.]+)\\\".*?team2Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+),.*?overs\\\":\\\"([\d.]+)\\\"/;
+            const scoreMatch = segment.match(scoreRegex);
 
-                    const formatScore = (s) => {
-                        if (!s || !s.inngs1) return '';
-                        let txt = `${s.inngs1.runs || 0}/${s.inngs1.wickets || 0}`;
-                        if (s.inngs1.overs) txt += ` (${s.inngs1.overs})`;
-                        return txt;
-                    };
+            let s1 = '', s2 = '';
+            let state = 'Preview';
 
-                    // Only add if not already added
-                    if (!matches.some(existing => existing.matchId === info.matchId)) {
-                        matches.push({
-                            matchId: info.matchId,
-                            seriesName: info.seriesName,
-                            matchDesc: info.matchDesc,
-                            status: info.status || info.statusTitle || '',
-                            team1: {
-                                name: info.team1.teamName,
-                                score: formatScore(score?.team1Score)
-                            },
-                            team2: {
-                                name: info.team2.teamName,
-                                score: formatScore(score?.team2Score)
-                            },
-                            state: info.state || 'Preview'
-                        });
-                    }
+            if (scoreMatch) {
+                s1 = `${scoreMatch[1]}/${scoreMatch[2]} (${scoreMatch[3]})`;
+                s2 = `${scoreMatch[4]}/${scoreMatch[5]} (${scoreMatch[6]})`;
+                state = 'Live';
+            } else {
+                // Try simpler score check
+                const s1m = segment.match(/team1Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+)/);
+                const s2m = segment.match(/team2Score\\\":\{.*?runs\\\":(\d+),.*?wickets\\\":(\d+)/);
+                if (s1m) s1 = `${s1m[1]}/${s1m[2]}`;
+                if (s2m) s2 = `${s2m[1]}/${s2m[2]}`;
+                if (s1m || s2m) state = 'Live';
+            }
+
+            if (!matches.some(m => m.matchId === id)) {
+                matches.push({
+                    matchId: id,
+                    seriesName: series.replace(/\\\\"/g, '"'),
+                    matchDesc: desc.replace(/\\\\"/g, '"'),
+                    status: status.replace(/\\\\"/g, '"'),
+                    team1: { name: t1.replace(/\\\\"/g, '"'), score: s1 },
+                    team2: { name: t2.replace(/\\\\"/g, '"'), score: s2 },
+                    state: state
                 });
-            } catch (e) {
-                // Ignore parsing errors for partial matches
             }
         }
 
-        // Fallback to SportsEvent if regex failed
+        // 2. Fallback for unescaped JSON (standard __NEXT_DATA__)
         if (matches.length === 0) {
-            const ldJsonRegex = /<script type=\"application\/ld\+json\">(.*?)<\/script>/g;
-            let ldResult;
-            while ((ldResult = ldJsonRegex.exec(html)) !== null) {
-                try {
-                    const ld = JSON.parse(ldResult[1]);
-                    const events = ld.mainEntity?.itemListElement || [];
-                    events.forEach(ev => {
-                        if (ev["@type"] === "SportsEvent") {
-                            matches.push({
-                                matchId: Math.random(),
-                                seriesName: ev.superEvent || 'Cricket',
-                                matchDesc: ev.name,
-                                status: ev.eventStatus,
-                                team1: { name: ev.competitor[0].name, score: '' },
-                                team2: { name: ev.competitor[1].name, score: '' },
-                                state: 'Live'
-                            });
-                        }
+            const cleanRegex = /\"matchId\":(\d+),.*?\"seriesName\":\"(.*?)\",.*?\"matchDesc\":\"(.*?)\",.*?\"status\":\"(.*?)\",.*?\"team1\":\{.*?\"teamName\":\"(.*?)\".*?\"team2\":\{.*?\"teamName\":\"(.*?)\"/g;
+            while ((match = cleanRegex.exec(html)) !== null) {
+                const [full, id, series, desc, status, t1, t2] = match;
+                if (!matches.some(m => m.matchId === id)) {
+                    matches.push({
+                        matchId: id,
+                        seriesName: series,
+                        matchDesc: desc,
+                        status: status,
+                        team1: { name: t1, score: '' },
+                        team2: { name: t2, score: '' },
+                        state: 'Live'
                     });
-                } catch (e) { }
+                }
             }
         }
 
@@ -101,7 +89,6 @@ async function scrapeCricket() {
             count: matches.length
         };
 
-        // Save to file as requested
         fs.writeFileSync('./cricket_scores.json', JSON.stringify(finalData, null, 2));
 
         await Cricket.deleteMany({});
@@ -111,7 +98,7 @@ async function scrapeCricket() {
 
         return finalData;
     } catch (err) {
-        console.error('Cricket Payload Scraping Error:', err.message);
+        console.error('Cricket Scraping Error:', err.message);
         throw err;
     }
 }
