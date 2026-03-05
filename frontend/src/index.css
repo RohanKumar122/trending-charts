@@ -701,12 +701,43 @@ h1 {
 }
 
 @media (max-width: 480px) {
+  .modal-overlay {
+    padding: 0.75rem;
+  }
+
   .modal-content {
-    padding: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.125rem;
+    max-width: 80%;
+  }
+
+  .close-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .chart-container {
+    min-height: 200px;
+    margin-bottom: 1.25rem;
+    padding: 0.5rem;
+  }
+
+  .history-item {
+    padding: 0.625rem 0.75rem;
   }
 
   .history-item .time {
-    width: 90px;
+    width: 80px;
     font-size: 0.75rem;
   }
 }
