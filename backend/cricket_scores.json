@@ -199,13 +199,13 @@
       "matchId": "147491",
       "seriesName": "CSA Provincial One-Day Challenge Division One",
       "matchDesc": "16th Match",
-      "status": "Match starts at Mar 05, 08:00 GMT",
+      "status": "Knights opt to bat",
       "team1": {
-        "name": "South Western Districts",
+        "name": "Knights",
         "score": ""
       },
       "team2": {
-        "name": "Knights",
+        "name": "South Western Districts",
         "score": ""
       },
       "state": "Preview"
@@ -241,7 +241,7 @@
       "state": "Preview"
     }
   ],
-  "timestamp": "2026-03-05T07:44:31.683Z",
-  "istTimestamp": "3/5/2026, 1:14:31 PM",
+  "timestamp": "2026-03-05T07:59:23.924Z",
+  "istTimestamp": "3/5/2026, 1:29:23 PM",
   "count": 16
 }

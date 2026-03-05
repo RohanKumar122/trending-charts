@@ -3,9 +3,13 @@ import axios from 'axios';
 import { 
   Coins, Gem, RefreshCcw, TrendingUp, Clock, 
   AlertTriangle, Loader2, Sparkles, ShieldCheck,
-  Trophy, Users, Activity, Zap, ZapOff
+  Trophy, Users, Activity, Zap, ZapOff, X, ArrowUpRight, ArrowDownRight, Minus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, AreaChart, Area 
+} from 'recharts';
 
 const BASE_API = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/rates').replace('/api/rates', '');
 
@@ -18,6 +22,9 @@ function App() {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
+  const [historyData, setHistoryData] = useState([]);
+  const [showHistory, setShowHistory] = useState(null); // 'gold' or 'silver'
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const fetchRates = async (isManualRefresh = false) => {
     const RATES_URL = `${BASE_API}/api/rates`;
@@ -63,20 +70,76 @@ function App() {
     }
   };
 
+  const fetchHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const response = await axios.get(`${BASE_API}/api/history`);
+      setHistoryData(response.data);
+    } catch (err) {
+      console.error('Error fetching history:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchRates();
     fetchCricket();
+    fetchHistory();
     
     let interval;
     if (isAutoRefresh) {
       interval = setInterval(() => {
         if (activeTab === 'cricket') fetchCricket();
-        else fetchRates();
+        else {
+          fetchRates();
+          fetchHistory();
+        }
       }, 60000);
     }
     
     return () => clearInterval(interval);
   }, [isAutoRefresh, activeTab]);
+
+  const getPriceTrend = (metal) => {
+    if (historyData.length < 2) return { diff: 0, percent: 0, direction: 'none' };
+    
+    // Sort history by time descending to get the latest and previous
+    const sorted = [...historyData].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const latest = sorted[0];
+    const previous = sorted[1];
+
+    let currentVal, previousVal;
+    
+    if (metal === 'gold') {
+      currentVal = latest.gold.num24K;
+      previousVal = previous.gold.num24K;
+    } else {
+      currentVal = latest.silver.numKg;
+      previousVal = previous.silver.numKg;
+    }
+
+    if (!currentVal || !previousVal) return { diff: 0, percent: 0, direction: 'none' };
+
+    const diff = currentVal - previousVal;
+    const percent = ((diff / previousVal) * 100).toFixed(2);
+    
+    return {
+      diff,
+      percent: Math.abs(percent),
+      direction: diff > 0 ? 'up' : diff < 0 ? 'down' : 'none'
+    };
+  };
+
+  const TrendBadge = ({ trend }) => {
+    if (trend.direction === 'none') return <div className="trend-badge none"><Minus size={12} /> --%</div>;
+    return (
+      <div className={`trend-badge ${trend.direction}`}>
+        {trend.direction === 'up' ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+        {trend.percent}%
+      </div>
+    );
+  };
 
   return (
     <div className="container">
@@ -204,12 +267,16 @@ function App() {
             {activeTab === 'metals' ? (
               <>
                 {/* Gold Card */}
-                <motion.div className="card gold-card" whileHover={{ y: -8 }}>
+                <motion.div 
+                  className="card gold-card clickable" 
+                  whileHover={{ y: -8 }}
+                  onClick={() => setShowHistory('gold')}
+                >
                   <div className="card-header">
                     <div className="card-title">
                       <Coins className="gold-text" size={32} /> Gold Reserve
                     </div>
-                    <TrendingUp size={20} className="gold-text" style={{ opacity: 0.5 }} />
+                    <TrendBadge trend={getPriceTrend('gold')} />
                   </div>
                   <div className="price-display">
                     <div className="price-item">
@@ -222,17 +289,21 @@ function App() {
                     </div>
                   </div>
                   <div className="card-footer">
-                    <ShieldCheck size={14} style={{ marginRight: '6px' }} /> Certified Purity Standards
+                    <ShieldCheck size={14} style={{ marginRight: '6px' }} /> View Historical Comparison
                   </div>
                 </motion.div>
 
                 {/* Silver Card */}
-                <motion.div className="card silver-card" whileHover={{ y: -8 }}>
+                <motion.div 
+                  className="card silver-card clickable" 
+                  whileHover={{ y: -8 }}
+                  onClick={() => setShowHistory('silver')}
+                >
                   <div className="card-header">
                     <div className="card-title">
                       <Gem className="silver-text" size={32} /> Silver Assets
                     </div>
-                    <TrendingUp size={20} className="silver-text" style={{ opacity: 0.5 }} />
+                    <TrendBadge trend={getPriceTrend('silver')} />
                   </div>
                   <div className="price-display">
                     <div className="price-item">
@@ -245,7 +316,7 @@ function App() {
                     </div>
                   </div>
                   <div className="card-footer">
-                    <ShieldCheck size={14} style={{ marginRight: '6px' }} /> Industrial Grade Verified
+                    <ShieldCheck size={14} style={{ marginRight: '6px' }} /> View Historical Comparison
                   </div>
                 </motion.div>
               </>
@@ -297,6 +368,14 @@ function App() {
         </button>
       </motion.div>
 
+      <HistoryModal 
+        isOpen={!!showHistory} 
+        onClose={() => setShowHistory(null)} 
+        metal={showHistory} 
+        data={historyData}
+        loading={historyLoading}
+      />
+
       {data && (
         <motion.div 
           className="updated-time"
@@ -319,6 +398,114 @@ function App() {
         .animate-spin { animation: spin 0.8s linear infinite; }
       `}</style>
     </div>
+  );
+}
+
+function HistoryModal({ isOpen, onClose, metal, data, loading }) {
+  if (!isOpen) return null;
+
+  const filteredData = data.map(item => ({
+    time: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }),
+    price: metal === 'gold' ? item.gold.num24K : item.silver.numKg,
+    rawTime: new Date(item.timestamp)
+  })).sort((a, b) => a.rawTime - b.rawTime);
+
+  const metalName = metal === 'gold' ? 'Gold (24K)' : 'Silver (1KG)';
+  const color = metal === 'gold' ? '#FFD700' : '#E5E4E2';
+
+  return (
+    <motion.div 
+      className="modal-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div 
+        className="modal-content"
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="modal-header">
+          <h2>{metalName} Price History</h2>
+          <button className="close-btn" onClick={onClose}><X size={20} /></button>
+        </div>
+
+        <div className="chart-container">
+          {loading ? (
+            <div className="chart-loading">
+              <Loader2 className="animate-spin" size={40} />
+              <p>Fetching history...</p>
+            </div>
+          ) : filteredData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={filteredData}>
+                <defs>
+                  <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#94A3B8" 
+                  fontSize={10}
+                  tick={{ fill: '#94A3B8' }}
+                />
+                <YAxis 
+                  stroke="#94A3B8" 
+                  fontSize={10}
+                  tick={{ fill: '#94A3B8' }}
+                  domain={['auto', 'auto']}
+                  tickFormatter={(val) => `₹${(val / 1000).toFixed(1)}k`}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    background: 'rgba(15, 23, 42, 0.9)', 
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    color: '#fff'
+                  }}
+                  formatter={(val) => [`₹${val.toLocaleString()}`, 'Price']}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="price" 
+                  stroke={color} 
+                  fillOpacity={1} 
+                  fill="url(#colorPrice)" 
+                  strokeWidth={3}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="no-data">Insufficient historical data for comparison.</div>
+          )}
+        </div>
+
+        <div className="history-list">
+          <h3>Recent Updates</h3>
+          <div className="list-items">
+            {[...filteredData].reverse().slice(0, 5).map((item, i, arr) => {
+              const prev = arr[i + 1];
+              const diff = prev ? item.price - prev.price : 0;
+              return (
+                <div key={i} className="history-item">
+                  <span className="time">{item.time}</span>
+                  <span className="price">₹{item.price.toLocaleString()}</span>
+                  <span className={`diff ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}`}>
+                    {diff > 0 ? '+' : ''}{diff.toLocaleString()}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
