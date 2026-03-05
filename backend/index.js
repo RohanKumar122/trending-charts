@@ -149,4 +149,8 @@ app.get('/api/rates', async (req, res) => {
     }
 });
 
+app.get('/health', (req, res) => {
+    res.json({ status: 'OK' });
+});
+
 app.listen(PORT, () => console.log(`Backend Server running on http://localhost:${PORT}`));
