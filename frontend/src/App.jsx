@@ -13,7 +13,7 @@ function App() {
   const [data, setData] = useState(null);
   const [cricketData, setCricketData] = useState(null);
   const [activeTab, setActiveTab] = useState('metals');
-  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
+  const [isAutoRefresh, setIsAutoRefresh] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
