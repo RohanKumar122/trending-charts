@@ -117,7 +117,22 @@ function App() {
     if (validHistory.length < 2) return { diff: 0, percent: 0, direction: 'none' };
     
     const latest = validHistory[0];
-    const previous = validHistory[1];
+    
+    // Find the record closest to 24 hours ago
+    const now = new Date(latest.timestamp).getTime();
+    const targetTime = now - (24 * 60 * 60 * 1000);
+    
+    let previous = validHistory[1];
+    let minDiff = Math.abs(new Date(previous.timestamp).getTime() - targetTime);
+
+    for (let i = 2; i < validHistory.length; i++) {
+      const time = new Date(validHistory[i].timestamp).getTime();
+      const diff = Math.abs(time - targetTime);
+      if (diff < minDiff) {
+        minDiff = diff;
+        previous = validHistory[i];
+      }
+    }
 
     let currentVal, previousVal;
     
@@ -130,7 +145,7 @@ function App() {
         previousVal = previous.silver?.numKg;
       }
 
-      if (currentVal === undefined || previousVal === undefined || previousVal === 0) {
+      if (!currentVal || !previousVal) {
         return { diff: 0, percent: 0, direction: 'none' };
       }
 
@@ -148,12 +163,15 @@ function App() {
     }
   };
 
-  const TrendBadge = ({ trend }) => {
+  const TrendBadge = ({ trend, metal }) => {
     if (trend.direction === 'none') return <div className="trend-badge none"><Minus size={12} /> --%</div>;
+    
     return (
       <div className={`trend-badge ${trend.direction}`}>
         {trend.direction === 'up' ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-        {trend.percent}%
+        <span>
+          ₹{Math.abs(trend.diff).toLocaleString('en-IN')} / {trend.percent}%
+        </span>
       </div>
     );
   };
@@ -400,7 +418,14 @@ function App() {
       >
         <button 
           className="refresh-btn" 
-          onClick={() => activeTab === 'metals' ? fetchRates(true) : fetchCricket(true)} 
+          onClick={() => {
+            if (activeTab === 'metals') {
+              fetchRates(true);
+              fetchHistory();
+            } else {
+              fetchCricket(true);
+            }
+          }} 
           disabled={loading || refreshing}
         >
           {refreshing ? <Loader2 size={18} className="animate-spin" /> : <RefreshCcw size={18} />}

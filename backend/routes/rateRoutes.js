@@ -32,7 +32,7 @@ router.get('/rates', async (req, res) => {
 // Get historical data for charts
 router.get('/history', async (req, res) => {
     try {
-        const history = await Rate.find().sort({ timestamp: 1 }).limit(100);
+        const history = await Rate.find().sort({ timestamp: 1 }).limit(500);
         res.json(history);
     } catch (err) {
         res.status(500).json({ error: err.message });
