@@ -1,46 +1,9 @@
 const axios = require('axios');
 const fs = require('fs');
+const cheerio = require('cheerio');
 const Cricket = require('../models/Cricket');
 
 const CRICKET_URL = 'https://www.cricbuzz.com/cricket-match/live-scores';
-
-/**
- * Converts "Mar 05, 13:30 GMT" to "Mar 05, 19:00 IST"
- */
-function convertToIST(status) {
-    if (!status || typeof status !== 'string') return status;
-
-    // Regex matches "Mar 05, 13:30 GMT"
-    const gmtRegex = /(\w{3} \d{1,2}, \d{2}:\d{2}) GMT/g;
-
-    return status.replace(gmtRegex, (match, dateTimeStr) => {
-        try {
-            const currentYear = new Date().getFullYear();
-            const date = new Date(`${dateTimeStr} ${currentYear} GMT`);
-
-            if (isNaN(date.getTime())) return match;
-
-            const options = {
-                timeZone: 'Asia/Kolkata',
-                month: 'short',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            };
-
-            const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(date);
-            const p = {};
-            parts.forEach(part => p[part.type] = part.value);
-
-            // Format to "Mar 05, 19:00 IST"
-            return `${p.month} ${p.day}, ${p.hour}:${p.minute} IST`;
-        } catch (e) {
-            console.error('Time conversion error:', e.message);
-            return match;
-        }
-    });
-}
 
 async function scrapeCricket() {
     console.log('--- Starting Cricket Robust Scraping ---');
@@ -96,7 +59,7 @@ async function scrapeCricket() {
                     matchId: id,
                     seriesName: clean(series),
                     matchDesc: clean(desc),
-                    status: convertToIST(clean(status)),
+                    status: clean(status),
                     team1: { name: clean(t1), score: s1 },
                     team2: { name: clean(t2), score: s2 },
                     state: state
@@ -104,27 +67,35 @@ async function scrapeCricket() {
             }
         }
 
-        // 2. Fallback for unescaped JSON (standard __NEXT_DATA__)
+        // 3. Fallback: Parse from __NEXT_DATA__ or self.__next_f script tags
         if (matches.length === 0) {
-            const cleanRegex = /\"matchId\":(\d+),.*?\"seriesName\":\"(.*?)\",.*?\"matchDesc\":\"(.*?)\",.*?\"status\":\"(.*?)\",.*?\"team1\":\{.*?\"teamName\":\"(.*?)\".*?\"team2\":\{.*?\"teamName\":\"(.*?)\"/g;
-            while ((match = cleanRegex.exec(html)) !== null) {
-                const [full, id, series, desc, status, t1, t2] = match;
-                if (!matches.some(m => m.matchId === id)) {
-                    matches.push({
-                        matchId: id,
-                        seriesName: series,
-                        matchDesc: desc,
-                        status: convertToIST(status),
-                        team1: { name: t1, score: '' },
-                        team2: { name: t2, score: '' },
-                        state: 'Live'
-                    });
+            const $ = cheerio.load(html);
+            $('script').each((i, el) => {
+                const content = $(el).html();
+                if (content && content.includes('matchId')) {
+                    // Try to find the JSON-like objects in the script chunks
+                    const regex = /\{"matchId":(\d+),.*?"team1":\{.*?"teamName":"(.*?)"\}.*?"team2":\{.*?"teamName":"(.*?)"\}/g;
+                    let m;
+                    while ((m = regex.exec(content)) !== null) {
+                        if (!matches.some(x => x.matchId === m[1])) {
+                            matches.push({
+                                matchId: m[1],
+                                seriesName: "Unknown Series",
+                                matchDesc: "Match",
+                                status: "Live",
+                                team1: { name: m[2], score: '' },
+                                team2: { name: m[3], score: '' },
+                                state: 'Live'
+                            });
+                        }
+                    }
                 }
-            }
+            });
         }
 
         const now = new Date();
-        const istTime = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+        const istTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+
         const finalData = {
             matches,
             timestamp: now,
@@ -132,11 +103,19 @@ async function scrapeCricket() {
             count: matches.length
         };
 
+        // Save to file as fallback/log
         fs.writeFileSync('./cricket_scores.json', JSON.stringify(finalData, null, 2));
 
-        await Cricket.deleteMany({});
+        // CRITICAL FIX: Only update DB if we found matches!
         if (matches.length > 0) {
+            console.log(`Updating MongoDB with ${matches.length} matches...`);
+            // Use findOneAndReplace or deleteMany/create
+            // We'll stick to delete/create but only if we have data
+            await Cricket.deleteMany({});
             await Cricket.create(finalData);
+            console.log('MongoDB Update Successful');
+        } else {
+            console.log('--- WARNING: No matches found during scrap. Skipping DB update to preserve cache. ---');
         }
 
         return finalData;
@@ -147,4 +126,3 @@ async function scrapeCricket() {
 }
 
 module.exports = { scrapeCricket };
-

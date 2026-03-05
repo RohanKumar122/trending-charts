@@ -31,62 +31,62 @@
       "state": "Live"
     },
     {
-      "matchId": "144659",
-      "seriesName": "Sri Lanka Women tour of West Indies 2026",
-      "matchDesc": "3rd T20I",
-      "status": "Sri Lanka Women won by 9 wkts",
-      "team1": {
-        "name": "West Indies Women",
-        "score": "119/5"
-      },
-      "team2": {
-        "name": "Sri Lanka Women",
-        "score": "121/1"
-      },
-      "state": "Live"
-    },
-    {
-      "matchId": "139450",
-      "seriesName": "ICC Men's T20 World Cup 2026",
-      "matchDesc": "51st Match, Super 8 Group 1 (X2 v X4)",
-      "status": "South Africa won by 5 wkts",
-      "team1": {
-        "name": "Zimbabwe",
-        "score": "153/7"
-      },
-      "team2": {
-        "name": "South Africa",
-        "score": "154/5"
-      },
-      "state": "Live"
-    },
-    {
-      "matchId": "117065",
+      "matchId": "117074",
       "seriesName": "India Women tour of Australia, 2026",
-      "matchDesc": "3rd ODI",
-      "status": "Australia Women won by 185 runs",
+      "matchDesc": "Only Test",
+      "status": "Match starts at Mar 06, 05:20 GMT",
       "team1": {
         "name": "Australia Women",
-        "score": "409/7"
+        "score": ""
       },
       "team2": {
         "name": "India Women",
-        "score": "224/10"
+        "score": ""
+      },
+      "state": "Preview"
+    },
+    {
+      "matchId": "133391",
+      "seriesName": "Sheffield Shield 2025-26",
+      "matchDesc": "25th Match",
+      "status": "Day 1: Stumps - Tasmania trail by 170 runs",
+      "team1": {
+        "name": "Victoria",
+        "score": "222/10"
+      },
+      "team2": {
+        "name": "Tasmania",
+        "score": "52/4"
       },
       "state": "Live"
     },
     {
-      "matchId": "139448",
-      "seriesName": "ICC Men's T20 World Cup 2026",
-      "matchDesc": "50th Match, Super 8 Group 2 (Y3 v Y4)",
-      "status": "Pakistan won by 5 runs",
+      "matchId": "133402",
+      "seriesName": "Sheffield Shield 2025-26",
+      "matchDesc": "26th Match",
+      "status": "Day 1: Stumps - Queensland trail by 173 runs",
       "team1": {
-        "name": "Pakistan",
-        "score": "212/8"
+        "name": "Western Australia",
+        "score": "210/10"
       },
       "team2": {
-        "name": "Sri Lanka",
-        "score": "207/6"
+        "name": "Queensland",
+        "score": "37/3"
+      },
+      "state": "Live"
+    },
+    {
+      "matchId": "122759",
+      "seriesName": "Zimbabwe Women tour of New Zealand, 2026",
+      "matchDesc": "1st ODI",
+      "status": "New Zealand Women won by 180 runs",
+      "team1": {
+        "name": "New Zealand Women",
+        "score": "354/3"
+      },
+      "team2": {
+        "name": "Zimbabwe Women",
+        "score": "174/10"
       },
       "state": "Live"
     },
@@ -136,47 +136,32 @@
       "state": "Preview"
     },
     {
-      "matchId": "133391",
-      "seriesName": "Sheffield Shield 2025-26",
-      "matchDesc": "25th Match",
-      "status": "Day 1: 3rd Session - Tasmania trail by 214 runs",
-      "team1": {
-        "name": "Victoria",
-        "score": "222/10"
-      },
-      "team2": {
-        "name": "Tasmania",
-        "score": "8/1"
-      },
-      "state": "Live"
-    },
-    {
-      "matchId": "133402",
-      "seriesName": "Sheffield Shield 2025-26",
-      "matchDesc": "26th Match",
-      "status": "Day 1: 3rd Session",
-      "team1": {
-        "name": "Western Australia",
-        "score": "190/7"
-      },
-      "team2": {
-        "name": "Queensland",
-        "score": ""
-      },
-      "state": "Live"
-    },
-    {
       "matchId": "133407",
       "seriesName": "Sheffield Shield 2025-26",
       "matchDesc": "27th Match",
-      "status": "Day 1: 3rd Session",
+      "status": "Day 1: Stumps - South Australia trail by 249 runs",
       "team1": {
         "name": "New South Wales",
-        "score": "222/8"
+        "score": "269/10"
       },
       "team2": {
         "name": "South Australia",
-        "score": ""
+        "score": "20/1"
+      },
+      "state": "Live"
+    },
+    {
+      "matchId": "147310",
+      "seriesName": "CSA Provincial One-Day Challenge Division One",
+      "matchDesc": "13th Match",
+      "status": "Border won by 59 runs",
+      "team1": {
+        "name": "Border",
+        "score": "306/5"
+      },
+      "team2": {
+        "name": "Eastern Storm",
+        "score": "247/10"
       },
       "state": "Live"
     },
@@ -211,21 +196,6 @@
       "state": "Preview"
     },
     {
-      "matchId": "147310",
-      "seriesName": "CSA Provincial One-Day Challenge Division One",
-      "matchDesc": "13th Match",
-      "status": "Border won by 59 runs",
-      "team1": {
-        "name": "Border",
-        "score": "306/5"
-      },
-      "team2": {
-        "name": "Eastern Storm",
-        "score": "247/10"
-      },
-      "state": "Live"
-    },
-    {
       "matchId": "147491",
       "seriesName": "CSA Provincial One-Day Challenge Division One",
       "matchDesc": "16th Match",
@@ -256,37 +226,22 @@
       "state": "Preview"
     },
     {
-      "matchId": "117074",
-      "seriesName": "India Women v Australia Women",
-      "matchDesc": "Only Test",
-      "status": "Match starts at Mar 06, 05:20 GMT",
+      "matchId": "145893",
+      "seriesName": "Pakistan A v England Lions in UAE, 2026",
+      "matchDesc": "4th Unofficial ODI",
+      "status": "Match starts at Mar 06, 09:30 GMT",
       "team1": {
-        "name": "Australia Women",
+        "name": "Pakistan A",
         "score": ""
       },
       "team2": {
-        "name": "India Women",
+        "name": "England Lions",
         "score": ""
       },
       "state": "Preview"
-    },
-    {
-      "matchId": "122759",
-      "seriesName": "Zimbabwe Women tour of New Zealand",
-      "matchDesc": "1st ODI",
-      "status": "New Zealand Women won by 180 runs",
-      "team1": {
-        "name": "New Zealand Women",
-        "score": "354/3"
-      },
-      "team2": {
-        "name": "Zimbabwe Women",
-        "score": "174/10"
-      },
-      "state": "Live"
     }
   ],
-  "timestamp": "2026-03-05T05:44:02.310Z",
-  "istTimestamp": "3/5/2026, 11:14:02 AM",
-  "count": 19
+  "timestamp": "2026-03-05T07:44:31.683Z",
+  "istTimestamp": "3/5/2026, 1:14:31 PM",
+  "count": 16
 }

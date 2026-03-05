@@ -5,14 +5,21 @@ const { scrapeCricket } = require('../services/cricketService');
 
 router.get('/cricket-scores', async (req, res) => {
     try {
-        const forceRefresh = req.query.refresh === 'true';
         let cachedData = await Cricket.findOne().sort({ timestamp: -1 });
 
-        if (cachedData && !forceRefresh) {
+        if (cachedData && cachedData.matches && cachedData.matches.length > 0) {
             const ageInMs = new Date() - new Date(cachedData.timestamp);
+
+            // If data is very stale (> 5 mins), wait for fresh data
+            if (ageInMs > 5 * 60 * 1000) {
+                console.log('Cricket cache VERY stale, waiting for fresh data...');
+                const freshData = await scrapeCricket();
+                return res.json({ ...freshData, source: 'live' });
+            }
+
+            // If data is slightly stale (> 1 min), refresh in background
             if (ageInMs > 1 * 60 * 1000) {
-                console.log('Cricket cache stale, refreshing in background...');
-                // Background refresh, don't await
+                console.log('Cricket cache slightly stale, refreshing in background...');
                 scrapeCricket().catch(e => console.log('Background cricket scrape failed', e.message));
             }
 
@@ -21,7 +28,7 @@ router.get('/cricket-scores', async (req, res) => {
                 source: 'cache'
             });
         } else {
-            console.log(forceRefresh ? 'Forced cricket refresh requested...' : 'No cricket cache, scraping...');
+            console.log('No cricket cache found, fetching live...');
             const freshData = await scrapeCricket();
             res.json({ ...freshData, source: 'live' });
         }

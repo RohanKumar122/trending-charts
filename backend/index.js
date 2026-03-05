@@ -27,6 +27,23 @@ app.get('/health', (req, res) => {
     });
 });
 
+const { scrapeRates } = require('./services/scraperService');
+const { scrapeCricket } = require('./services/cricketService');
+
 app.listen(PORT, () => {
     console.log(`Backend Server running on http://localhost:${PORT}`);
+
+    // Periodic refresh (every 5 minutes for Cricket, every 15 for Rates)
+    setInterval(() => {
+        console.log('Background Sync: Fetching Cricket...');
+        scrapeCricket().catch(e => console.log('Auto Sync Cricket failed:', e.message));
+    }, 5 * 60 * 1000);
+
+    setInterval(() => {
+        console.log('Background Sync: Fetching Rates...');
+        scrapeRates().catch(e => console.log('Auto Sync Rates failed:', e.message));
+    }, 15 * 60 * 1000);
+
+    // Initial Sync
+    scrapeCricket().catch(e => console.log('Initial Cricket Sync failed:', e.message));
 });
