@@ -9,12 +9,11 @@ router.get('/rates', async (req, res) => {
         const cachedData = await Rate.findOne().sort({ timestamp: -1 });
 
         if (cachedData) {
-            // Check if data is stale (> 6 hours - roughly 4 times a day)
+            // Check if data is stale (> 15 minutes)
             const ageInMs = new Date() - new Date(cachedData.timestamp);
-            if (ageInMs > 6 * 60 * 60 * 1000) {
-                console.log('Cache stale (6h limit), refreshing in background...');
-                // Don't await it here, let it happen in background
-                scrapeRates().catch(e => console.log('Background scrape failed', e.message));
+            if (ageInMs > 15 * 60 * 1000) {
+                console.log('Rate cache stale (>15m), refreshing in background...');
+                scrapeRates().catch(e => console.log('Background rate refresh failed', e.message));
             }
 
             return res.json({

@@ -73,11 +73,21 @@ async function scrapeRates() {
             istTimestamp: istTime
         };
 
-        // Save to History (Append if new or changed)
+        // Save to History (Append if new or changed, or every 30 minutes)
         const last = await Rate.findOne().sort({ timestamp: -1 });
-        if (!last || last.gold.num24K !== goldData.num24K || last.silver.numKg !== silverData.numKg || new Date(last.timestamp).toDateString() !== now.toDateString()) {
+        const thirtyMinsAgo = new Date(now.getTime() - 30 * 60 * 1000);
+
+        const isPriceChanged = !last || last.gold.num24K !== goldData.num24K || last.silver.numKg !== silverData.numKg;
+        const isStale = last && last.timestamp < thirtyMinsAgo;
+        const isNewDay = !last || new Date(last.timestamp).toDateString() !== now.toDateString();
+
+        if ((isPriceChanged || isStale || isNewDay) && goldData.num24K > 0 && silverData.numKg > 0) {
             await Rate.create(finalData);
-            console.log('Appended to history.');
+            console.log(`Rate updated in MongoDB (PriceChanged: ${isPriceChanged}, Stale: ${isStale}, NewDay: ${isNewDay})`);
+        } else if (goldData.num24K === 0) {
+            console.log('--- WARNING: Scrape returned zero prices. Preserving old cache. ---');
+        } else {
+            console.log('Rate same and recently updated. Skipping redundant DB write.');
         }
 
         return finalData;
