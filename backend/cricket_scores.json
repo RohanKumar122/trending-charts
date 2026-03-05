@@ -4,16 +4,16 @@
       "matchId": "139478",
       "seriesName": "ICC Men's T20 World Cup 2026",
       "matchDesc": "2nd Semi-Final",
-      "status": "Match starts at Mar 05, 13:30 GMT",
+      "status": "England need 216 runs in 95 balls",
       "team1": {
         "name": "India",
-        "score": ""
+        "score": "253/7"
       },
       "team2": {
         "name": "England",
-        "score": ""
+        "score": "38/2"
       },
-      "state": "Preview"
+      "state": "Live"
     },
     {
       "matchId": "139472",
@@ -124,13 +124,28 @@
       "matchId": "147123",
       "seriesName": "CSA Provincial One-Day Challenge Division One",
       "matchDesc": "8th Match",
-      "status": "Match starts at Mar 05, 11:00 GMT",
+      "status": "Match delayed due to rain",
       "team1": {
         "name": "Dolphins",
-        "score": ""
+        "score": "281/9"
       },
       "team2": {
         "name": "Titans",
+        "score": ""
+      },
+      "state": "Live"
+    },
+    {
+      "matchId": "147134",
+      "seriesName": "CSA Provincial One-Day Challenge Division One",
+      "matchDesc": "9th Match",
+      "status": "Match starts at Mar 06, 11:00 GMT",
+      "team1": {
+        "name": "Lions",
+        "score": ""
+      },
+      "team2": {
+        "name": "Warriors",
         "score": ""
       },
       "state": "Preview"
@@ -199,31 +214,16 @@
       "matchId": "147491",
       "seriesName": "CSA Provincial One-Day Challenge Division One",
       "matchDesc": "16th Match",
-      "status": "Knights opt to bat",
+      "status": "South Western Districts won by 7 wkts",
       "team1": {
         "name": "Knights",
-        "score": ""
+        "score": "250/8"
       },
       "team2": {
         "name": "South Western Districts",
-        "score": ""
+        "score": "251/3"
       },
-      "state": "Preview"
-    },
-    {
-      "matchId": "145882",
-      "seriesName": "Pakistan A v England Lions in UAE, 2026",
-      "matchDesc": "3rd Unofficial ODI",
-      "status": "Match Cancelled",
-      "team1": {
-        "name": "Pakistan A",
-        "score": ""
-      },
-      "team2": {
-        "name": "England Lions",
-        "score": ""
-      },
-      "state": "Preview"
+      "state": "Live"
     },
     {
       "matchId": "145893",
@@ -241,7 +241,7 @@
       "state": "Preview"
     }
   ],
-  "timestamp": "2026-03-05T08:00:57.750Z",
-  "istTimestamp": "3/5/2026, 1:30:57 PM",
+  "timestamp": "2026-03-05T15:50:55.462Z",
+  "istTimestamp": "3/5/2026, 9:20:55 PM",
   "count": 16
 }

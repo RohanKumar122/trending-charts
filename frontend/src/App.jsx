@@ -16,6 +16,7 @@ const BASE_API = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/rat
 function App() {
   const [data, setData] = useState(null);
   const [cricketData, setCricketData] = useState(null);
+  const [cricketError, setCricketError] = useState(null);
   const [activeTab, setActiveTab] = useState('metals');
   const [isAutoRefresh, setIsAutoRefresh] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -54,6 +55,7 @@ function App() {
     const CRICKET_END = `${BASE_API}/api/cricket-scores`;
     if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
+    setCricketError(null);
     
     try {
       const response = await axios.get(CRICKET_END);
@@ -64,6 +66,7 @@ function App() {
       }
     } catch (err) {
       console.error('Error fetching cricket:', err);
+      setCricketError('Unable to load cricket scores. The server may be unavailable or the scraper was blocked.');
     } finally {
       if (!isManualRefresh) setLoading(false);
       setRefreshing(false);
@@ -336,30 +339,53 @@ function App() {
               </>
             ) : (
               <>
-                {cricketData?.matches?.map((match) => (
-                  <motion.div 
-                    key={match.matchId} 
-                    className="card cricket-card" 
-                    whileHover={{ scale: 1.01 }}
+                {cricketError ? (
+                  <motion.div
+                    className="card"
+                    style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                   >
-                    <div className="match-series">{match.seriesName}</div>
-                    <div className="match-teams">
-                      <div className="team-row">
-                        <span className="team-name">{match.team1.name}</span>
-                        <span className="team-score">{match.team1.score || '--'}</span>
-                      </div>
-                      <div className="team-row">
-                        <span className="team-name">{match.team2.name}</span>
-                        <span className="team-score">{match.team2.score || '--'}</span>
-                      </div>
-                    </div>
-                    <div className={`match-status ${match.state === 'Live' ? 'live' : ''}`}>
-                      {match.state === 'Live' && <span className="live-dot" />}
-                      {match.status}
-                    </div>
-                    <div className="match-desc">{match.matchDesc}</div>
+                    <AlertTriangle size={36} style={{ margin: '0 auto 1rem', color: '#f59e0b' }} />
+                    <div style={{ color: '#f59e0b', fontWeight: 700, marginBottom: '0.5rem' }}>Cricket Scores Unavailable</div>
+                    <div style={{ color: '#94A3B8', fontSize: '0.875rem' }}>{cricketError}</div>
                   </motion.div>
-                ))}
+                ) : cricketData?.matches?.length === 0 ? (
+                  <motion.div
+                    className="card"
+                    style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <Trophy size={36} style={{ margin: '0 auto 1rem', opacity: 0.4 }} />
+                    <div style={{ color: '#94A3B8' }}>No live matches at the moment.</div>
+                  </motion.div>
+                ) : (
+                  cricketData?.matches?.map((match) => (
+                    <motion.div 
+                      key={match.matchId} 
+                      className="card cricket-card" 
+                      whileHover={{ scale: 1.01 }}
+                    >
+                      <div className="match-series">{match.seriesName}</div>
+                      <div className="match-teams">
+                        <div className="team-row">
+                          <span className="team-name">{match.team1.name}</span>
+                          <span className="team-score">{match.team1.score || '--'}</span>
+                        </div>
+                        <div className="team-row">
+                          <span className="team-name">{match.team2.name}</span>
+                          <span className="team-score">{match.team2.score || '--'}</span>
+                        </div>
+                      </div>
+                      <div className={`match-status ${match.state === 'Live' ? 'live' : ''}`}>
+                        {match.state === 'Live' && <span className="live-dot" />}
+                        {match.status}
+                      </div>
+                      <div className="match-desc">{match.matchDesc}</div>
+                    </motion.div>
+                  ))
+                )}
               </>
             )}
           </motion.div>

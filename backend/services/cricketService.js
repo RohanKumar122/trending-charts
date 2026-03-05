@@ -17,8 +17,6 @@ async function scrapeCricket() {
         const html = res.data;
         const matches = [];
 
-        // Save raw as requested by user
-        fs.writeFileSync('./cricket_raw.html', html);
 
         // This regex is very specific to the Next.js chunked format we saw in the logs
         const matchRegex = /matchId\\\":(\d+),.*?seriesName\\\":\\\"(.*?)\\\",.*?matchDesc\\\":\\\"(.*?)\\\",.*?status\\\":\\\"(.*?)\\\",.*?team1\\\":\{.*?teamName\\\":\\\"(.*?)\\\".*?team2\\\":\{.*?teamName\\\":\\\"(.*?)\\\"/g;
@@ -52,7 +50,7 @@ async function scrapeCricket() {
                 if (s1m || s2m) state = 'Live';
             }
 
-            if (!matches.some(m => m.matchId === id)) {
+            if (!matches.some(m => String(m.matchId) === String(id))) {
                 // Cleaning up escaped double quotes properly
                 const clean = (s) => s.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
                 matches.push({
@@ -103,8 +101,12 @@ async function scrapeCricket() {
             count: matches.length
         };
 
-        // Save to file as fallback/log
-        fs.writeFileSync('./cricket_scores.json', JSON.stringify(finalData, null, 2));
+        // Save to file as fallback/log (non-fatal — production may have read-only FS)
+        try {
+            fs.writeFileSync('./cricket_scores.json', JSON.stringify(finalData, null, 2));
+        } catch (fsErr) {
+            console.warn('Could not write cricket_scores.json (likely read-only FS in production):', fsErr.message);
+        }
 
         // CRITICAL FIX: Only update DB if we found matches!
         if (matches.length > 0) {
