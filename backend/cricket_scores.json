@@ -4,14 +4,14 @@
       "matchId": "139478",
       "seriesName": "ICC Men's T20 World Cup 2026",
       "matchDesc": "2nd Semi-Final",
-      "status": "England need 130 runs in 59 balls",
+      "status": "England need 82 runs in 36 balls",
       "team1": {
         "name": "India",
         "score": "253/7"
       },
       "team2": {
         "name": "England",
-        "score": "124/4"
+        "score": "172/5"
       },
       "state": "Live"
     },
@@ -29,21 +29,6 @@
         "score": "173/1"
       },
       "state": "Live"
-    },
-    {
-      "matchId": "117074",
-      "seriesName": "India Women tour of Australia, 2026",
-      "matchDesc": "Only Test",
-      "status": "Match starts at Mar 06, 05:20 GMT",
-      "team1": {
-        "name": "Australia Women",
-        "score": ""
-      },
-      "team2": {
-        "name": "India Women",
-        "score": ""
-      },
-      "state": "Preview"
     },
     {
       "matchId": "133391",
@@ -116,7 +101,7 @@
       },
       "team2": {
         "name": "North West - Eastvaal Renault Dragons",
-        "score": ""
+        "score": "Yet to Bat"
       },
       "state": "Live"
     },
@@ -131,24 +116,9 @@
       },
       "team2": {
         "name": "Titans",
-        "score": ""
+        "score": "Yet to Bat"
       },
       "state": "Live"
-    },
-    {
-      "matchId": "147134",
-      "seriesName": "CSA Provincial One-Day Challenge Division One",
-      "matchDesc": "9th Match",
-      "status": "Match starts at Mar 06, 11:00 GMT",
-      "team1": {
-        "name": "Lions",
-        "score": ""
-      },
-      "team2": {
-        "name": "Warriors",
-        "score": ""
-      },
-      "state": "Preview"
     },
     {
       "matchId": "147491",
@@ -181,6 +151,36 @@
       "state": "Live"
     },
     {
+      "matchId": "117074",
+      "seriesName": "India Women tour of Australia, 2026",
+      "matchDesc": "Only Test",
+      "status": "Match starts at Mar 06, 05:20 GMT",
+      "team1": {
+        "name": "Australia Women",
+        "score": ""
+      },
+      "team2": {
+        "name": "India Women",
+        "score": ""
+      },
+      "state": "Preview"
+    },
+    {
+      "matchId": "147134",
+      "seriesName": "CSA Provincial One-Day Challenge Division One",
+      "matchDesc": "9th Match",
+      "status": "Match starts at Mar 06, 11:00 GMT",
+      "team1": {
+        "name": "Lions",
+        "score": ""
+      },
+      "team2": {
+        "name": "Warriors",
+        "score": ""
+      },
+      "state": "Preview"
+    },
+    {
       "matchId": "145893",
       "seriesName": "Pakistan A v England Lions in UAE, 2026",
       "matchDesc": "4th Unofficial ODI",
@@ -196,7 +196,7 @@
       "state": "Preview"
     }
   ],
-  "timestamp": "2026-03-05T16:23:07.945Z",
-  "istTimestamp": "3/5/2026, 9:53:07 PM",
+  "timestamp": "2026-03-05T16:42:45.282Z",
+  "istTimestamp": "3/5/2026, 10:12:45 PM",
   "count": 13
 }

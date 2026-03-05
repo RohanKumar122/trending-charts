@@ -17,8 +17,16 @@ function App() {
   const [data, setData] = useState(null);
   const [cricketData, setCricketData] = useState(null);
   const [cricketError, setCricketError] = useState(null);
-  const [activeTab, setActiveTab] = useState('metals');
-  const [isAutoRefresh, setIsAutoRefresh] = useState(false);
+  const [activeTab, setActiveTab] = useState(localStorage.getItem('activeTab') || 'metals');
+  const [isAutoRefresh, setIsAutoRefresh] = useState(localStorage.getItem('isAutoRefresh') === 'true');
+
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    localStorage.setItem('isAutoRefresh', isAutoRefresh);
+  }, [isAutoRefresh]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
