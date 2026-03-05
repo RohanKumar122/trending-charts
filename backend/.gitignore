@@ -1,3 +1,4 @@
 node_modules
 .env
 *_raw.html
+cricket_scores.json
